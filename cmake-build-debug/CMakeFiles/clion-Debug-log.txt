@@ -1,0 +1,11 @@
+/opt/netbrains/clion/clion-2022.1.3/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/opt/netbrains/clion/clion-2022.1.3/bin/ninja/linux/x64/ninja -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja -S /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto -B /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/cmake-build-debug
+Found Parallel Hashmaps
+Standard Files /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/assert.cpp;/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/filesystem.cpp;/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/format.cpp;/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/loader.cpp;/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/logging.cpp;/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/string.cpp;/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/system.cpp
+Profiler Files /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/profiling/profiler.cpp;/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT/src/blt/profiling/profiler_v2.cpp
+Source: /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto
+Current Source: /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT
+Including phmap
+BLT  Successfully included!
+-- Configuring done (0.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/cmake-build-debug
