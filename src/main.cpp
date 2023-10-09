@@ -27,9 +27,6 @@ int main(int argc, const char** argv)
     
     auto loaded_problems = load_problem("../problems/r101.set");
     
-    BLT_TRACE("%d", loaded_problems.size());
-    BLT_TRACE("%d", loaded_problems[0].y);
-    
     ga::program p(args.get<int32_t>("capacity"));
     
     
