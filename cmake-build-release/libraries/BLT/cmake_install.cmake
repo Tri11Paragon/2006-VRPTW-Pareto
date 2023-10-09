@@ -1,4 +1,4 @@
-# Install script for directory: /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/BLT
+# Install script for directory: /home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

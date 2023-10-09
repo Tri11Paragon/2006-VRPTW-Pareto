@@ -16,9 +16,9 @@ namespace ga
     class program
     {
         private:
-            std::size_t customers;
+            std::size_t capacity;
         public:
-            explicit program(std::size_t customers);
+            explicit program(std::size_t capacity);
             
             ~program();
             

@@ -10,7 +10,7 @@
 namespace ga
 {
     
-    program::program(std::size_t customers): customers(customers)
+    program::program(std::size_t capacity): capacity(capacity)
     {
     
     }
