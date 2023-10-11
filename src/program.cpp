@@ -200,14 +200,20 @@ namespace ga
                 N--;
             }
             
+            auto pos = pop.pops.begin();
             while(true)
             {
-                auto p = std::find_if(pop.pops.begin(), pop.pops.end(), [&currentRank](const individual& v) {
+                // making this O(n) instead of O(n^2)
+                auto p = std::find_if(pos, pop.pops.end(), [&currentRank](const individual& v) {
                     return v.rank == currentRank;
                 });
                 if (p == pop.pops.end())
                     break;
-                pop.pops.erase(p);
+                // swaps the value not the iterator
+                std::iter_swap(p, pop.pops.end()-1);
+                pop.pops.pop_back();
+                // we can now continue the search from the found pos
+                pos = p;
             }
             currentRank++;
             m = N;
