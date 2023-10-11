@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <loader.h>
+#include <array>
 
 namespace ga
 {
@@ -22,16 +23,34 @@ namespace ga
     
     struct chromosome
     {
-        std::int32_t genes[CUSTOMER_COUNT];
+        std::array<std::int32_t, CUSTOMER_COUNT> genes;
     };
     
     struct route
     {
         std::vector<std::int32_t> customers;
+        double total_distance;
+    };
+    
+    struct individual
+    {
+        chromosome c;
+        std::vector<route> routes;
+        std::int32_t rank = 0;
+    };
+    
+    struct population
+    {
+        std::vector<individual> pops;
     };
     
     double distance(std::int32_t c1, std::int32_t c2);
+    
     std::vector<route> constructRoute(const chromosome& c);
+    
+    chromosome createRandomChromosome();
+    
+    void rankPopulation();
     
     void init(std::int32_t c, std::vector<record>&& r);
     
