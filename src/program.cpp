@@ -8,6 +8,7 @@
 #include <blt/std/logging.h>
 #include <valarray>
 #include <blt/std/random.h>
+#include <blt/std/memory.h>
 #include <algorithm>
 
 namespace ga
@@ -63,8 +64,10 @@ namespace ga
         return (u_distance <= v_distance && u_vehicles <= v_vehicles) && (u_distance < v_distance || u_vehicles < v_vehicles);
     }
     
-    bool is_non_dominated(size_t v){
-        for (int i = 0; i < current_population.pops.size(); i++){
+    bool is_non_dominated(size_t v)
+    {
+        for (int i = 0; i < current_population.pops.size(); i++)
+        {
             // if i dominates by some pop i, then v cannot be non-dominated
             if (v != i && dominates(current_population.pops[i], current_population.pops[v]))
                 return false;
@@ -185,7 +188,7 @@ namespace ga
     
     int execute()
     {
-        for (int ____ = 0; ____ < GENERATION_COUNT; ____++)
+        for (int _ = 0; _ < GENERATION_COUNT; _++)
         {
             // step 1. Transform each chromosome into feasible network configuration
             // by applying the routing scheme;
@@ -200,6 +203,9 @@ namespace ga
             
             // Evaluate fitness of the individuals of POP;
             rankPopulation();
+            
+            population new_pop;
+            keepElites(new_pop);
             
             return 0;
         }
@@ -232,6 +238,62 @@ namespace ga
             m = N;
         }
         current_population = std::move(ranked_pops);
+    }
+    
+    void keepElites(population& pop, size_t n)
+    {
+        // we are only going to keep one but we have the option for more. At this point the population values are ordered so we can take the first
+        for (int i = 0; i < n; i++)
+            pop.pops.push_back(current_population.pops[i]);
+    }
+    
+    const individual& select_pop(size_t tournament_size)
+    {
+        static std::random_device dev;
+        static std::mt19937_64 engine(dev());
+        static std::uniform_real_distribution float_dist(0.0, 1.0);
+        static std::uniform_int_distribution int_dist(0, POPULATION_SIZE - 1);
+        
+        //  A set of K individuals are randomly selected from the population
+        std::vector<int> buffer;
+        buffer.reserve(tournament_size);
+        while (buffer.size() < tournament_size)
+        {
+            auto selection = int_dist(engine);
+            if (std::find(buffer.begin(), buffer.end(), selection) == buffer.end())
+                buffer.push_back(selection);
+        }
+        // If r is less than 0.8 (0.8 set empirically), the fittest individual in the tournament set is then chosen as the one to be used for reproduction.
+        if (float_dist(engine) < 0.8)
+        {
+            std::int32_t min_rank = std::numeric_limits<std::int32_t>::max();
+            std::int32_t index = 0;
+            for (int i = 0; i < buffer.size(); i++)
+            {
+                auto r = current_population.pops[buffer[i]].rank;
+                if (r < min_rank)
+                {
+                    min_rank = r;
+                    index = i;
+                }
+            }
+            return current_population.pops[index];
+        } else
+        {
+            // Otherwise, any chromosome is chosen for reproduction from the tournament set.
+            std::uniform_int_distribution t_int_dist(0, (int) tournament_size - 1);
+            return current_population.pops[buffer[t_int_dist(engine)]];
+        }
+    }
+    
+    void applyCrossover(population& pop)
+    {
+    
+    }
+    
+    void applyMutation(population& pop)
+    {
+    
     }
     
 }

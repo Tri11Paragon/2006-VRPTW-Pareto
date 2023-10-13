@@ -52,6 +52,9 @@ namespace ga
     chromosome createRandomChromosome();
     
     void rankPopulation();
+    void keepElites(population& pop, size_t n);
+    void applyCrossover(population& pop);
+    void applyMutation(population& pop);
     
     void init(std::int32_t c, std::vector<record>&& r);
     
