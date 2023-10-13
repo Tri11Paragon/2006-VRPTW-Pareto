@@ -36,6 +36,7 @@ namespace ga
     {
         chromosome c;
         std::vector<route> routes;
+        double total_routes_distance = 0;
         std::int32_t rank = 0;
     };
     

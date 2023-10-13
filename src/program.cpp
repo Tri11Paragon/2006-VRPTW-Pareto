@@ -49,6 +49,29 @@ namespace ga
         return calculate_distance(r);
     }
     
+    /**
+     * u dominates v iff ∀i ∈ (1, ..., k) : ui ≤ vi ∧ ∃i ∈ (1, ..., k) : ui < vi
+     * @return if u is dominated by v
+     */
+    bool dominates(const individual& u, const individual& v)
+    {
+        auto u_distance = u.total_routes_distance;
+        auto v_distance = v.total_routes_distance;
+        auto u_vehicles = u.routes.size();
+        auto v_vehicles = v.routes.size();
+        // ∀i ∈ (1, ..., k) : ui ≤ v   ^   ∃i ∈ (1, ..., k) : ui < vi
+        return (u_distance <= v_distance && u_vehicles <= v_vehicles) && (u_distance < v_distance || u_vehicles < v_vehicles);
+    }
+    
+    bool is_non_dominated(size_t v){
+        for (int i = 0; i < current_population.pops.size(); i++){
+            // if i dominates by some pop i, then v cannot be non-dominated
+            if (v != i && dominates(current_population.pops[i], current_population.pops[v]))
+                return false;
+        }
+        return true;
+    }
+    
     double distance(std::int32_t c1, std::int32_t c2)
     {
         const auto& customer1 = records[c1];
@@ -162,14 +185,17 @@ namespace ga
     
     int execute()
     {
-        for (int _ = 0; _ < GENERATION_COUNT; _++)
+        for (int ____ = 0; ____ < GENERATION_COUNT; ____++)
         {
             // step 1. Transform each chromosome into feasible network configuration
             // by applying the routing scheme;
             for (auto& c : current_population.pops)
             {
-                c.routes = constructRoute(c.c);
                 c.rank = 0;
+                c.total_routes_distance = 0;
+                c.routes = constructRoute(c.c);
+                for (const auto& r : c.routes)
+                    c.total_routes_distance += r.total_distance;
             }
             
             // Evaluate fitness of the individuals of POP;
@@ -183,11 +209,8 @@ namespace ga
     
     void rankPopulation()
     {
-        population pop = current_population;
-        
-        pop.pops.pop_back();
-        
-        BLT_INFO("%d, %d", pop.pops.size(), current_population.pops.size());
+        population& pop = current_population;
+        population ranked_pops;
         
         int currentRank = 1;
         int N = POPULATION_SIZE;
@@ -196,28 +219,19 @@ namespace ga
         {
             for (int i = 0; i < m; i++)
             {
-                
-                N--;
+                if (is_non_dominated(i))
+                {
+                    current_population.pops[i].rank = currentRank;
+                    ranked_pops.pops.push_back(current_population.pops[i]);
+                    N--;
+                }
             }
-            
-            auto pos = pop.pops.begin();
-            while(true)
-            {
-                // making this O(n) instead of O(n^2)
-                auto p = std::find_if(pos, pop.pops.end(), [&currentRank](const individual& v) {
-                    return v.rank == currentRank;
-                });
-                if (p == pop.pops.end())
-                    break;
-                // swaps the value not the iterator
-                std::iter_swap(p, pop.pops.end()-1);
-                pop.pops.pop_back();
-                // we can now continue the search from the found pos
-                pos = p;
-            }
+            // remove all with this current rank
+            std::erase_if(pop.pops, [&currentRank](const ga::individual& v) -> bool { return v.rank == currentRank; });
             currentRank++;
             m = N;
         }
+        current_population = std::move(ranked_pops);
     }
     
 }
