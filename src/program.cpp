@@ -18,6 +18,16 @@ namespace ga
     std::vector<record> records;
     population current_population;
     
+    template<typename T>
+    void print(const T& t)
+    {
+        for (const auto& v : t)
+        {
+            BLT_INFO_STREAM << v << " ";
+        }
+        BLT_INFO_STREAM << "\n";
+    }
+    
     double calculate_distance(const route& r)
     {
         // distance between first customer and the depot
@@ -138,7 +148,7 @@ namespace ga
             {
                 route1.total_distance = r1_td;
                 route2.total_distance = r2_td;
-                BLT_TRACE("route accepted!");
+//                BLT_TRACE("route accepted!");
             }
         }
         
@@ -177,8 +187,22 @@ namespace ga
         current_population.pops.reserve(POPULATION_SIZE);
         
         for (int i = 0; i < POPULATION_SIZE; i++)
-            current_population.pops.emplace_back(createRandomChromosome(), std::vector<route>{});
+            current_population.pops.emplace_back(createRandomChromosome());
         
+    }
+    
+    void reconstruct_populations()
+    {
+        for (auto& c : current_population.pops)
+        {
+            c.rank = 0;
+            c.total_routes_distance = 0;
+            c.routes = constructRoute(c.c);
+            for (const auto& r : c.routes)
+                c.total_routes_distance += r.total_distance;
+            
+            //BLT_TRACE("Current population rank %d, total dist %f, with %d routes", c.rank, c.total_routes_distance, c.routes.size());
+        }
     }
     
     void destroy()
@@ -190,24 +214,60 @@ namespace ga
     {
         for (int _ = 0; _ < GENERATION_COUNT; _++)
         {
+            BLT_TRACE("Constructing network");
             // step 1. Transform each chromosome into feasible network configuration
             // by applying the routing scheme;
-            for (auto& c : current_population.pops)
-            {
-                c.rank = 0;
-                c.total_routes_distance = 0;
-                c.routes = constructRoute(c.c);
-                for (const auto& r : c.routes)
-                    c.total_routes_distance += r.total_distance;
-            }
+            reconstruct_populations();
             
+            BLT_TRACE("Evaluating fitness");
             // Evaluate fitness of the individuals of POP;
             rankPopulation();
+            BLT_DEBUG("Currently, In generation (%d), the best individuals are:", _ + 1);
+            for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1; i++)
+                    BLT_DEBUG("\t(%d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].total_routes_distance,
+                              current_population.pops[i].routes.size());
             
+            BLT_TRACE("Create population");
             population new_pop;
-            keepElites(new_pop);
+            keepElites(new_pop, ELITE_COUNT); // GREETINGS
             
-            return 0;
+            BLT_TRACE("Applying Crossovers");
+            while (new_pop.pops.size() < POPULATION_SIZE)
+                applyCrossover(new_pop);
+            BLT_TRACE("Applying mutations");
+            applyMutation(new_pop);
+            
+            while (new_pop.pops.size() > current_population.pops.size())
+                new_pop.pops.pop_back();
+            
+            //BLT_DEBUG("New pop %d old pop %d", new_pop.pops.size(), current_population.pops.size());
+            
+            current_population = new_pop;
+            
+            //return 0;
+        }
+        reconstruct_populations();
+        rankPopulation();
+        
+        BLT_INFO("The best individuals we found are:");
+        for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1; i++)
+        {
+            std::string route_values;
+            for (const auto& r : current_population.pops[i].routes)
+            {
+                auto d = validate_route(r);
+                if (d == 0 || d == std::numeric_limits<double>::max())
+                {
+                    BLT_ERROR("Failure in pop (%d), route value is invalid!", i + 1);
+                    return -1;
+                } else
+                {
+                    route_values += std::to_string(d) += " ";
+                }
+            }
+            BLT_INFO("\t(%d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].total_routes_distance,
+                     current_population.pops[i].routes.size());
+            //BLT_INFO("\t\t%s", route_values.c_str());
         }
         
         return 0;
@@ -223,6 +283,7 @@ namespace ga
         int m = N;
         while (N != 0)
         {
+            //BLT_DEBUG("Running on %d with total pops left %d new pops %d", currentRank, pop.pops.size(), ranked_pops.pops.size());
             for (int i = 0; i < m; i++)
             {
                 if (is_non_dominated(i))
@@ -247,7 +308,7 @@ namespace ga
             pop.pops.push_back(current_population.pops[i]);
     }
     
-    const individual& select_pop(size_t tournament_size)
+    size_t select_pop(size_t tournament_size)
     {
         static std::random_device dev;
         static std::mt19937_64 engine(dev());
@@ -277,23 +338,178 @@ namespace ga
                     index = i;
                 }
             }
-            return current_population.pops[index];
+            return index;
         } else
         {
             // Otherwise, any chromosome is chosen for reproduction from the tournament set.
             std::uniform_int_distribution t_int_dist(0, (int) tournament_size - 1);
-            return current_population.pops[buffer[t_int_dist(engine)]];
+            return buffer[t_int_dist(engine)];
+        }
+    }
+    
+    inline void remove_from(const route& r, individual& c)
+    {
+        for (std::int32_t to_remove : r.customers)
+        {
+            for (auto& cr : c.routes)
+            {
+                std::erase_if(cr.customers, [&to_remove](const std::int32_t v) -> bool { return v == to_remove; });
+            }
+        };
+    }
+    
+    void insert_to(const route& r_in, individual& c_in)
+    {
+        for (std::int32_t v : r_in.customers)
+        {
+            // cache the route distance
+            struct route_cache
+            {
+                double distance = 0;
+                size_t route_index = 0;
+                size_t insertion_index = 0;
+            };
+            
+            std::vector<route_cache> possibleRoutes;
+            for (int j = 0; j < c_in.routes.size(); j++)
+            {
+                const route& r = c_in.routes[j];
+                for (int i = 0; i < r.customers.size(); i++)
+                {
+                    route r_copy = r;
+                    r_copy.customers.insert(r_copy.customers.begin() + i, v);
+                    double d = validate_route(r_copy);
+                    if (d != std::numeric_limits<double>::max())
+                        possibleRoutes.emplace_back(d, j, i);
+                }
+            }
+            // no feasible route found, we must make a new one
+            if (possibleRoutes.empty())
+            {
+                route new_route;
+                new_route.customers.push_back(v);
+                c_in.routes.push_back(new_route);
+            } else
+            {
+                route_cache min;
+                min.distance = std::numeric_limits<double>::max();
+                for (const auto& r : possibleRoutes)
+                {
+                    if (r.distance < min.distance)
+                        min = r;
+                }
+                c_in.routes[min.route_index].customers
+                                            .insert(c_in.routes[min.route_index].customers.begin() + static_cast<long>(min.insertion_index), v);
+            }
+        }
+    }
+    
+    void reconstruct_chromosome(individual& i)
+    {
+        std::memset(i.c.genes.data(), 0, sizeof(std::int32_t) * CUSTOMER_COUNT);
+        for (const auto v : i.c.genes)
+        {
+            if (v != 0)
+                BLT_ERROR("failure of setting");
+        }
+        int insertion_index = 0;
+        for (const auto& route : i.routes)
+        {
+            for (const auto& customer : route.customers)
+                i.c.genes[insertion_index++] = customer;
         }
     }
     
     void applyCrossover(population& pop)
     {
-    
+        static std::random_device dev;
+        static std::mt19937_64 engine(dev());
+        static std::uniform_real_distribution crossover_chance(0.0, 1.0);
+        auto p1 = select_pop(TOURNAMENT_SIZE);
+        auto p2 = select_pop(TOURNAMENT_SIZE);
+        // make sure we don't create children with ourselves
+        while (p2 == p1)
+            p2 = select_pop(TOURNAMENT_SIZE);
+        
+        const auto& parent1 = current_population.pops[p1];
+        const auto& parent2 = current_population.pops[p2];
+        
+        // don't apply crossover, just move the parents in unchanged.
+        if (crossover_chance(engine) > CROSSOVER_RATE)
+        {
+            pop.pops.push_back(parent1);
+            pop.pops.push_back(parent2);
+            return;
+        }
+        
+        std::uniform_int_distribution p1_r_select(0ul, parent1.routes.size() - 1);
+        std::uniform_int_distribution p2_r_select(0ul, parent2.routes.size() - 1);
+        
+        const auto& r1 = parent1.routes[p1_r_select(engine)];
+        const auto& r2 = parent2.routes[p2_r_select(engine)];
+        
+        individual c1 = parent1, c2 = parent2;
+        
+        // remove r1 from p2 and r2 from p1
+        remove_from(r1, c2);
+        remove_from(r2, c1);
+        
+        // now insert r1 back into p2 and r2 into p1 to create c1 and c2
+        insert_to(r1, c2);
+        insert_to(r2, c1);
+        
+        // finally reconstruct the chromosome using the routes will be done after mutation since mutation also modifies the routes.
+        pop.pops.push_back(c1);
+        pop.pops.push_back(c2);
     }
     
     void applyMutation(population& pop)
     {
-    
+        static std::random_device dev;
+        static std::mt19937_64 engine(dev());
+        static std::uniform_real_distribution mutation_chance(0.0, 1.0);
+        for (auto& indv : pop.pops)
+        {
+            if (mutation_chance(engine) < MUTATION_RATE)
+            {
+                // run until we mutate a valid route.
+                while (true)
+                {
+                    std::uniform_int_distribution select(0ul, indv.routes.size() - 1);
+                    auto& route = indv.routes[select(engine)];
+                    if (route.customers.size() <= 1)
+                        continue;
+                    auto route_copy = route;
+                    if (route.customers.size() == 2)
+                    {
+                        // simple swap op.
+                        auto t = route.customers[0];
+                        route.customers[0] = route.customers[1];
+                        route.customers[1] = t;
+                    } else
+                    {
+                        // 2 - 3 customers
+                        static std::uniform_int_distribution len(1, 2);
+                        auto length = len(engine);
+                        std::uniform_int_distribution point(0ul, route.customers.size() - 1 - length);
+                        // inversion_start_point
+                        auto isp = static_cast<long>(point(engine));
+                        std::reverse(route.customers.begin() + isp, route.customers.begin() + isp + length + 1);
+                    }
+                    
+                    // if it's not valid, reset.
+                    if (validate_route(route) == std::numeric_limits<double>::max())
+                    {
+                        route = route_copy;
+                    }
+                    
+                    break;
+                }
+            }
+        }
+        // rebuild all the chromosomes. this might actually cause problems?
+        for (auto& i : pop.pops)
+            reconstruct_chromosome(i);
     }
     
 }

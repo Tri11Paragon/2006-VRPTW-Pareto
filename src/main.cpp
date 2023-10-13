@@ -24,7 +24,7 @@ int main(int argc, const char** argv)
                                                            .setDefault("200").build());
     parser.addArgument(blt::arg_builder("--problemset", "-p").setAction(blt::arg_action_t::STORE).setNArgs(1)
                                                              .setHelp("Set where to load the problem set from, defaults to r101")
-                                                             .setDefault("../problems/r101.set").build());
+                                                             .setDefault("../problems/r102.set").build());
     
     auto args = parser.parse_args(argc, argv);
     
