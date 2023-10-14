@@ -20,11 +20,11 @@ int main(int argc, const char** argv)
     blt::arg_parse parser;
     
     parser.addArgument(blt::arg_builder("--capacity", "-c").setAction(blt::arg_action_t::STORE).setNArgs(1)
-                                                           .setHelp("Set the number of customers. (Default: 200)")
-                                                           .setDefault("200").build());
+                                                           .setHelp("Set the capacity of the trucks. (Default: 200)")
+                                                           .setDefault("1000").build());
     parser.addArgument(blt::arg_builder("--problemset", "-p").setAction(blt::arg_action_t::STORE).setNArgs(1)
                                                              .setHelp("Set where to load the problem set from, defaults to r101")
-                                                             .setDefault("../problems/r102.set").build());
+                                                             .setDefault("../problems/r201.set").build());
     
     auto args = parser.parse_args(argc, argv);
     

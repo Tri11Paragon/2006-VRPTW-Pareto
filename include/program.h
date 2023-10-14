@@ -26,7 +26,7 @@ namespace ga
     static constexpr std::int32_t TOURNAMENT_SIZE = 4;
     static constexpr std::int32_t ELITE_COUNT = 1;
     static constexpr double CROSSOVER_RATE = 0.8;
-    static constexpr double MUTATION_RATE = 0.9;
+    static constexpr double MUTATION_RATE = 0.1;
     
     struct chromosome
     {

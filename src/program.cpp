@@ -116,8 +116,13 @@ namespace ga
                 // we assume when a vehicle leaves it will teleport to the next destination immediately but must be able to service BEFORE closing
                 // if this isn't the intended behaviour remove the r.service_time from the second condition
                 // lastDepartTime + r.service_time is consistent with "and must return before or at time bn+1"
-                if (currentCapacity + r.demand > capacity || lastDepartTime + r.service_time > r.due || lastDepartTime + r.service_time > dueTime)
+                if ((currentCapacity + r.demand > capacity || lastDepartTime + r.service_time > r.due || lastDepartTime + r.service_time > dueTime))
+                {
+//                    BLT_INFO("%f + %f > %f", lastDepartTime, r.service_time, r.due);
+//                    BLT_INFO_STREAM << currentRoute.customers.size() << " " << (currentCapacity + r.demand > capacity)
+//                                    << (lastDepartTime + r.service_time > r.due) << (lastDepartTime + r.service_time > dueTime) << "\n";
                     break;
+                }
                 currentCapacity += r.demand;
                 // wait until the server opens, add the service time, move on
                 lastDepartTime = std::max(lastDepartTime, r.ready) + r.service_time;
@@ -259,7 +264,7 @@ namespace ga
                 if (d == 0 || d == std::numeric_limits<double>::max())
                 {
                     BLT_ERROR("Failure in pop (%d), route value is invalid!", i + 1);
-                    return -1;
+                    //return -1;
                 } else
                 {
                     route_values += std::to_string(d) += " ";
