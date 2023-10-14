@@ -21,7 +21,7 @@ namespace ga
 {
     
     static constexpr std::int32_t CUSTOMER_COUNT = 100;
-    static constexpr std::int32_t POPULATION_SIZE = 300;
+    static constexpr std::int32_t POPULATION_SIZE = 500;
     static constexpr std::int32_t GENERATION_COUNT = 350;
     static constexpr std::int32_t TOURNAMENT_SIZE = 4;
     static constexpr std::int32_t ELITE_COUNT = 1;
