@@ -14,6 +14,8 @@
 #include <functional>
 #include <any>
 #include <loader.h>
+#include <iostream>
+#include <blt/std/string.h>
 
 int main(int argc, const char** argv)
 {
@@ -30,11 +32,39 @@ int main(int argc, const char** argv)
     
     auto loaded_problems = load_problem(args.get<std::string>("problemset"));
     
-    ga::init(args.get<int32_t>("capacity"), std::move(loaded_problems));
+    ga::program p(args.get<int32_t>("capacity"), std::move(loaded_problems));
     
-    auto ret = ga::execute();
+    std::int32_t skip = 0;
     
-    ga::destroy();
+    std::string whatToDo;
     
-    return ret;
+    while (true)
+    {
+        while (skip-- > 0)
+        {
+            p.executeStep();
+        }
+        BLT_INFO("What do we do(%d/%d)? ", p.steps(), p.GENERATION_COUNT);
+        std::getline(std::cin, whatToDo);
+        if (blt::string::is_numeric(whatToDo))
+        {
+            skip = std::stoi(whatToDo);
+        } else
+        {
+            whatToDo = blt::string::toLowerCase(whatToDo);
+            if (whatToDo == "exit" || blt::string::contains(whatToDo, 'q'))
+                return 0;
+            if (whatToDo == "print")
+                p.print();
+            else if (blt::string::contains(whatToDo, "val"))
+                p.validate();
+            else if (blt::string::contains(whatToDo, 'w'))
+                p.write(whatToDo);
+            else
+            {
+                BLT_INFO("Not a command.");
+                continue;
+            }
+        }
+    }
 }

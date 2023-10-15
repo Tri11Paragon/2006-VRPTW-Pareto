@@ -8,32 +8,16 @@
 #include <blt/std/logging.h>
 #include <valarray>
 #include <blt/std/random.h>
-#include <blt/std/memory.h>
 #include <blt/std/string.h>
+#include <blt/std/time.h>
 #include <algorithm>
-#include <iostream>
+#include <fstream>
+#include <ostream>
 
 namespace ga
 {
-#define RANDOM_STATIC
-#define RANDOM_ENGINE() RANDOM_STATIC std::random_device dev; \
-    RANDOM_STATIC std::mt19937_64 engine(dev());
     
-    std::int32_t capacity;
-    std::vector<record> records;
-    population current_population;
-    
-    template<typename T>
-    void print(const T& t)
-    {
-        for (const auto& v : t)
-        {
-            BLT_INFO_STREAM << v << " ";
-        }
-        BLT_INFO_STREAM << "\n";
-    }
-    
-    double distance(std::int32_t c1, std::int32_t c2)
+    double program::distance(std::int32_t c1, std::int32_t c2)
     {
         const auto& customer1 = records[c1];
         const auto& customer2 = records[c2];
@@ -42,7 +26,7 @@ namespace ga
         return std::sqrt(x * x + y * y);
     }
     
-    double calculate_distance(const route& r)
+    double program::calculate_distance(const route& r)
     {
         // distance between first customer and the depot
         double dist = distance(0, r.customers[0]);
@@ -55,7 +39,7 @@ namespace ga
         return dist;
     }
     
-    double validate_route(const route& r)
+    double program::validate_route(const route& r)
     {
         if (r.customers.empty())
             return 0;
@@ -78,17 +62,17 @@ namespace ga
      * u dominates v iff ∀i ∈ (1, ..., k) : ui ≤ vi ∧ ∃i ∈ (1, ..., k) : ui < vi
      * @return if u is dominated by v
      */
-    bool dominates(const individual& u, const individual& v)
+    bool program::dominates(const individual& u, const individual& v)
     {
         auto u_distance = u.total_routes_distance;
         auto v_distance = v.total_routes_distance;
-        auto u_vehicles = u.routes.size();
-        auto v_vehicles = v.routes.size();
+        auto u_vehicles = static_cast<double>(u.routes.size());
+        auto v_vehicles = static_cast<double>(v.routes.size());
         // ∀i ∈ (1, ..., k) : ui ≤ v   ^   ∃i ∈ (1, ..., k) : ui < vi
         return (u_distance <= v_distance && u_vehicles <= v_vehicles) && (u_distance < v_distance || u_vehicles < v_vehicles);
     }
     
-    bool is_non_dominated(size_t v)
+    bool program::is_non_dominated(size_t v)
     {
         for (int i = 0; i < current_population.pops.size(); i++)
         {
@@ -99,23 +83,25 @@ namespace ga
         return true;
     }
     
-    size_t select_pop(size_t tournament_size)
+    double program::weighted_sum_fitness(size_t v)
     {
-        RANDOM_ENGINE();
-        RANDOM_STATIC std::uniform_real_distribution float_dist(0.0, 1.0);
-        RANDOM_STATIC std::uniform_int_distribution int_dist(0, POPULATION_SIZE - 1);
+        return ALPHA * static_cast<double>(current_population.pops[v].routes.size()) + BETA * current_population.pops[v].total_routes_distance;
+    }
+    
+    size_t program::select_pop(size_t tournament_size)
+    {
         
         //  A set of K individuals are randomly selected from the population
         std::vector<int> buffer;
         buffer.reserve(tournament_size);
         while (buffer.size() < tournament_size)
         {
-            auto selection = int_dist(engine);
+            auto selection = engine.getInt(0, POPULATION_SIZE - 1);
             if (std::find(buffer.begin(), buffer.end(), selection) == buffer.end())
                 buffer.push_back(selection);
         }
         // If r is less than 0.8 (0.8 set empirically), the fittest individual in the tournament set is then chosen as the one to be used for reproduction.
-        if (float_dist(engine) < 0.8)
+        if (engine.getDouble(0, 1) < 0.8)
         {
             std::int32_t min_rank = std::numeric_limits<std::int32_t>::max();
             std::int32_t index = 0;
@@ -132,12 +118,11 @@ namespace ga
         } else
         {
             // Otherwise, any chromosome is chosen for reproduction from the tournament set.
-            std::uniform_int_distribution t_int_dist(0, (int) tournament_size - 1);
-            return buffer[t_int_dist(engine)];
+            return buffer[engine.getInt(0, (int) tournament_size - 1)];
         }
     }
     
-    inline void remove_from(const route& r, individual& c)
+    void program::remove_from(const route& r, individual& c)
     {
         for (std::int32_t to_remove : r.customers)
         {
@@ -148,7 +133,7 @@ namespace ga
         };
     }
     
-    void insert_to(const route& r_in, individual& c_in)
+    void program::insert_to(const route& r_in, individual& c_in)
     {
         for (std::int32_t v : r_in.customers)
         {
@@ -194,7 +179,7 @@ namespace ga
         }
     }
     
-    void reconstruct_populations()
+    void program::reconstruct_populations()
     {
         for (auto& c : current_population.pops)
         {
@@ -208,7 +193,7 @@ namespace ga
         }
     }
     
-    std::vector<route> constructRoute(const chromosome& c)
+    std::vector<route> program::constructRoute(const chromosome& c)
     {
         std::vector<route> routes;
         
@@ -275,24 +260,20 @@ namespace ga
         return routes;
     }
     
-    chromosome createRandomChromosome()
+    chromosome program::createRandomChromosome()
     {
-        RANDOM_ENGINE();
-        RANDOM_STATIC std::uniform_real_distribution select(0.0, 1.0);
-        
         chromosome ca{};
         
         std::vector<std::int32_t> unused;
         for (int i = 1; i <= CUSTOMER_COUNT; i++)
             unused.push_back(i);
         
-        if (select(engine) < 0.9)
+        if (engine.getDouble(0, 1) < 0.9)
         {
             // pick genes in random order
             for (int& gene : ca.genes)
             {
-                std::uniform_int_distribution dist(0, (int) unused.size() - 1);
-                auto index = dist(engine);
+                auto index = engine.getInt(0, (int) unused.size() - 1);
                 gene = unused[index];
                 std::iter_swap(unused.begin() + index, unused.end() - 1);
                 unused.pop_back();
@@ -303,8 +284,7 @@ namespace ga
             while (!unused.empty())
             {
                 // Randomly remove a customer ci ∈ C
-                std::uniform_int_distribution dist(0, (int) unused.size() - 1);
-                auto index = dist(engine);
+                auto index = engine.getInt(0, (int) unused.size() - 1);
                 auto ci = unused[index];
                 std::iter_swap(unused.begin() + index, unused.end() - 1);
                 unused.pop_back();
@@ -324,7 +304,7 @@ namespace ga
                     }
                 }
                 
-                std::sort(close.begin(), close.end(), [&ci](const auto v1, const auto v2) -> bool {
+                std::sort(close.begin(), close.end(), [&ci, this](const auto v1, const auto v2) -> bool {
                     return distance(v1, ci) < distance(v2, ci);
                 });
                 
@@ -340,144 +320,31 @@ namespace ga
         return ca;
     }
     
-    void init(std::int32_t c, std::vector<record>&& r)
+    void program::executeStep()
     {
-        capacity = c;
-        records = std::move(r);
-        
-        current_population.pops.reserve(POPULATION_SIZE);
-        
-        for (int i = 0; i < POPULATION_SIZE; i++)
-            current_population.pops.emplace_back(createRandomChromosome());
-        
-    }
-    
-    void destroy()
-    {
-    
-    }
-    
-    int execute()
-    {
-        int skip = 0;
-        size_t count = 0;
-        while (true)
-        {
-            BLT_TRACE("Constructing network");
-            // step 1. Transform each chromosome into feasible network configuration
-            // by applying the routing scheme;
-            reconstruct_populations();
-            
-            BLT_TRACE("Evaluating fitness");
-            // Evaluate fitness of the individuals of POP;
-            rankPopulation();
-            
-            if (--skip <= 0)
-            {
-                std::string whatToDo;
-                BLT_INFO("What do we do(%d/%d)? ", count, GENERATION_COUNT);
-                std::getline(std::cin, whatToDo);
-                if (blt::string::is_numeric(whatToDo))
-                {
-                    skip = std::stoi(whatToDo);
-                } else
-                {
-                    whatToDo = blt::string::toLowerCase(whatToDo);
-                    if (whatToDo == "exit" || blt::string::contains(whatToDo, 'q'))
-                    {
-                        return 0;
-                    }
-                    if (whatToDo == "print")
-                    {
-                        double averageDist = 0;
-                        size_t avgVeh = 0;
-                        for (int i = 0; i < POPULATION_SIZE; i++)
-                        {
-                            BLT_WARN("\t(%d: %d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].rank,
-                                     current_population.pops[i].total_routes_distance,
-                                     current_population.pops[i].routes.size());
-                            averageDist += current_population.pops[i].total_routes_distance;
-                            avgVeh += current_population.pops[i].routes.size();
-                        }
-                        BLT_INFO("Total/Avg Dist: (%f/%f), Total/Avg Routes: (%d/%d)", averageDist,
-                                 averageDist / static_cast<double>(POPULATION_SIZE), avgVeh, avgVeh / POPULATION_SIZE);
-                    }
-                }
-            }
-            
-            BLT_DEBUG("Currently, In generation (%d), the best individuals are:", _ + 1);
-            for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1; i++)
-                    BLT_DEBUG("\t(%d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].total_routes_distance,
-                              current_population.pops[i].routes.size());
-            
-            BLT_TRACE("Create population");
-            population new_pop;
-            keepElites(new_pop, ELITE_COUNT); // GREETINGS
-            
-            BLT_TRACE("Applying Crossovers");
-            while (new_pop.pops.size() < POPULATION_SIZE)
-                applyCrossover(new_pop);
-            BLT_TRACE("Applying mutations");
-            applyMutation(new_pop);
-            
-            while (new_pop.pops.size() > current_population.pops.size())
-                new_pop.pops.pop_back();
-            
-            //BLT_DEBUG("New pop %d old pop %d", new_pop.pops.size(), current_population.pops.size());
-            
-            current_population = new_pop;
-            //return 0;
-            count++;
-        }
+        // step 1. Transform each chromosome into feasible network configuration
+        // by applying the routing scheme;
         reconstruct_populations();
+        
+        // Evaluate fitness of the individuals of POP;
         rankPopulation();
         
-        BLT_INFO("All routes:");
-        for (int i = 0; i < POPULATION_SIZE; i++)
-        {
-            std::string route_values;
-            for (const auto& r : current_population.pops[i].routes)
-            {
-                auto d = validate_route(r);
-                if (d == 0 || d == std::numeric_limits<double>::max())
-                {
-                    BLT_ERROR("Failure in pop (%d), route value is invalid!", i + 1);
-                    //return -1;
-                } else
-                {
-                    route_values += std::to_string(d) += " ";
-                }
-            }
-            BLT_INFO("\t(%d : rank: %d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].rank,
-                     current_population.pops[i].total_routes_distance,
-                     current_population.pops[i].routes.size());
-        }
+        population new_pop;
+        keepElites(new_pop, ELITE_COUNT); // GREETINGS
         
-        BLT_INFO("The best individuals we found are:");
-        for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1; i++)
-        {
-            std::string route_values;
-            for (const auto& r : current_population.pops[i].routes)
-            {
-                auto d = validate_route(r);
-                if (d == 0 || d == std::numeric_limits<double>::max())
-                {
-                    BLT_ERROR("Failure in pop (%d), route value is invalid!", i + 1);
-                    //return -1;
-                } else
-                {
-                    route_values += std::to_string(d) += " ";
-                }
-            }
-            BLT_INFO("\t(%d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].total_routes_distance,
-                     current_population.pops[i].routes.size());
-            //BLT_INFO("\t\t%s", route_values.c_str());
-        }
+        while (new_pop.pops.size() < POPULATION_SIZE)
+            applyCrossover(new_pop);
         
-        return 0;
+        applyMutation(new_pop);
+        
+        while (new_pop.pops.size() > current_population.pops.size())
+            new_pop.pops.pop_back();
+        
+        current_population = new_pop;
+        count++;
     }
     
-    void rankPopulation()
+    void program::rankPopulation()
     {
         population& pop = current_population;
         population ranked_pops;
@@ -505,14 +372,14 @@ namespace ga
         current_population = std::move(ranked_pops);
     }
     
-    void keepElites(population& pop, size_t n)
+    void program::keepElites(population& pop, size_t n)
     {
         // we are only going to keep one but we have the option for more. At this point the population values are ordered so we can take the first
         for (int i = 0; i < n; i++)
             pop.pops.push_back(current_population.pops[i]);
     }
     
-    void reconstruct_chromosome(individual& i)
+    void program::reconstruct_chromosome(individual& i)
     {
         std::memset(i.c.genes.data(), 0, sizeof(std::int32_t) * CUSTOMER_COUNT);
         for (const auto v : i.c.genes)
@@ -528,10 +395,8 @@ namespace ga
         }
     }
     
-    void applyCrossover(population& pop)
+    void program::applyCrossover(population& pop)
     {
-        RANDOM_ENGINE();
-        RANDOM_STATIC std::uniform_real_distribution crossover_chance(0.0, 1.0);
         auto p1 = select_pop(TOURNAMENT_SIZE);
         auto p2 = select_pop(TOURNAMENT_SIZE);
         // make sure we don't create children with ourselves
@@ -542,18 +407,15 @@ namespace ga
         const auto& parent2 = current_population.pops[p2];
         
         // don't apply crossover, just move the parents in unchanged.
-        if (crossover_chance(engine) > CROSSOVER_RATE)
+        if (engine.getDouble(0, 1) > CROSSOVER_RATE)
         {
             pop.pops.push_back(parent1);
             pop.pops.push_back(parent2);
             return;
         }
         
-        std::uniform_int_distribution p1_r_select(0ul, parent1.routes.size() - 1);
-        std::uniform_int_distribution p2_r_select(0ul, parent2.routes.size() - 1);
-        
-        const auto& r1 = parent1.routes[p1_r_select(engine)];
-        const auto& r2 = parent2.routes[p2_r_select(engine)];
+        const auto& r1 = parent1.routes[engine.getLong(0ul, parent1.routes.size() - 1)];
+        const auto& r2 = parent2.routes[engine.getLong(0ul, parent2.routes.size() - 1)];
         
         individual c1 = parent1, c2 = parent2;
         
@@ -570,19 +432,16 @@ namespace ga
         pop.pops.push_back(c2);
     }
     
-    void applyMutation(population& pop)
+    void program::applyMutation(population& pop)
     {
-        RANDOM_ENGINE();
-        RANDOM_STATIC std::uniform_real_distribution mutation_chance(0.0, 1.0);
         for (auto& indv : pop.pops)
         {
-            if (mutation_chance(engine) < MUTATION_RATE)
+            if (engine.getDouble(0, 1) < MUTATION_RATE)
             {
                 // run until we mutate a valid route.
                 while (true)
                 {
-                    std::uniform_int_distribution select(0ul, indv.routes.size() - 1);
-                    auto& route = indv.routes[select(engine)];
+                    auto& route = indv.routes[engine.getLong(0ul, indv.routes.size() - 1)];
                     if (route.customers.size() <= 1)
                         continue;
                     auto route_copy = route;
@@ -595,11 +454,9 @@ namespace ga
                     } else
                     {
                         // 2 - 3 customers
-                        RANDOM_STATIC std::uniform_int_distribution len(1, 2);
-                        auto length = len(engine);
-                        std::uniform_int_distribution point(0ul, route.customers.size() - 1 - length);
+                        auto length = engine.getInt(1, 2);
                         // inversion_start_point
-                        auto isp = static_cast<long>(point(engine));
+                        auto isp = static_cast<long>(engine.getLong(0ul, route.customers.size() - 1 - length));
                         std::reverse(route.customers.begin() + isp, route.customers.begin() + isp + length + 1);
                     }
                     
@@ -616,6 +473,78 @@ namespace ga
         // rebuild all the chromosomes. this might actually cause problems?
         for (auto& i : pop.pops)
             reconstruct_chromosome(i);
+    }
+    
+    void program::applySecondaryMutation(population& pop)
+    {
+    
+    }
+    
+    void program::print()
+    {
+        double averageDist = 0;
+        size_t avgVeh = 0;
+        for (int i = 0; i < POPULATION_SIZE; i++)
+        {
+            BLT_DEBUG("\t(%d: %d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].rank,
+                     current_population.pops[i].total_routes_distance,
+                     current_population.pops[i].routes.size());
+            averageDist += current_population.pops[i].total_routes_distance;
+            avgVeh += current_population.pops[i].routes.size();
+        }
+        BLT_INFO("Total/Avg Dist: (%f/%f), Total/Avg Routes: (%d/%d)", averageDist,
+                 averageDist / static_cast<double>(POPULATION_SIZE), avgVeh, avgVeh / POPULATION_SIZE);
+    }
+    
+    void program::validate()
+    {
+        for (int i = 0; i < POPULATION_SIZE; i++)
+        {
+            std::string route_values;
+            for (const auto& r : current_population.pops[i].routes)
+            {
+                auto d = validate_route(r);
+                if (d == 0 || d == std::numeric_limits<double>::max())
+                {
+                    BLT_ERROR("Failure in pop (%d), route value is invalid!", i + 1);
+                    //return -1;
+                } else
+                {
+                    route_values += std::to_string(d) += " ";
+                }
+            }
+        }
+        BLT_INFO("Validation complete.");
+    }
+    
+    void program::write(const std::string& input)
+    {
+        const auto args = blt::string::split(input, ' ');
+        std::string path = "./" + blt::system::getTimeStringFS();
+        if (args.size() > 1)
+            path = args[1];
+        std::ofstream out(path);
+        for (int i = 0; i < current_population.pops.size(); i++)
+        {
+            const auto& pop = current_population.pops[i];
+            out << '(' << i << ") " << pop.rank << ": " << pop.total_routes_distance << " | " << pop.routes.size() << "\n";
+            out << "\troutes:\n";
+            for (const auto& r : pop.routes)
+            {
+                auto rv = validate_route(r);
+                out << "\t\t" << r.total_distance << "(valid? " << (rv != std::numeric_limits<double>::max() ? "true" : "false")
+                    << "): ";
+                for (const auto c : r.customers)
+                    out << c << " ";
+                out << "\n";
+            }
+            out << "\tchromosome string:\n\t\t";
+            for (const auto v : pop.c.genes)
+            {
+                out << v << " ";
+            }
+            out << "\n";
+        }
     }
     
 }
