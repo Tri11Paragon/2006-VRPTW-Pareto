@@ -94,6 +94,17 @@ namespace blt
         return glfwWindowShouldClose(window.window);
     }
     
+    void cleanup()
+    {
+        // Cleanup
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        
+        glfwDestroyWindow(window.window);
+        glfwTerminate();
+    }
+    
 }
 
 #endif
