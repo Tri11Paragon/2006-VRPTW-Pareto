@@ -9,6 +9,8 @@
 #include <any>
 #include <loader.h>
 #include <blt/std/string.h>
+#include <blt/window/window.h>
+#include <implot.h>
 
 int main(int argc, const char** argv)
 {
@@ -20,6 +22,10 @@ int main(int argc, const char** argv)
     parser.addArgument(blt::arg_builder("--problemset", "-p").setAction(blt::arg_action_t::STORE).setNArgs(1)
                                                              .setHelp("Set where to load the problem set from, defaults to r101")
                                                              .setDefault("../problems/c101.set").build());
+
+#ifdef BLT_BUILD_GLFW
+        blt::init_glfw();
+#endif
     
     auto args = parser.parse_args(argc, argv);
     
@@ -30,6 +36,11 @@ int main(int argc, const char** argv)
     std::int32_t skip = 0;
     
     std::string whatToDo;
+    
+    blt::create_window();
+    while (blt::draw([]() -> void {
+        ImPlot::ShowDemoWindow();
+    }));
     
     while (true)
     {

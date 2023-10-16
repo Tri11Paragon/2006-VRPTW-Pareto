@@ -20,6 +20,7 @@ namespace blt
     
     void init_glfw();
     void create_window(size_t width = 1280, size_t height = 720);
+    // returns false if the window has closed.
     bool draw(const std::function<void()>& run);
     void cleanup();
 

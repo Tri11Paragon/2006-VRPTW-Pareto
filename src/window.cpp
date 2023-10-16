@@ -4,6 +4,7 @@
 #include <blt/window/window.h>
 
 #include "imgui.h"
+#include "implot.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <GLFW/glfw3.h>
@@ -11,6 +12,7 @@
 #include <blt/std/logging.h>
 #include <blt/std/assert.h>
 #include <blt/std/hashmap.h>
+
 
 #ifdef BLT_BUILD_GLFW
 
@@ -23,7 +25,7 @@ namespace blt
 {
     
     struct window_container {
-        GLFWwindow* window;
+        GLFWwindow* window = nullptr;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     } window;
     
@@ -31,7 +33,6 @@ namespace blt
     {
         glfwSetErrorCallback(glfw_error_callback);
         BLT_ASSERT(glfwInit());
-        const char* glsl_version = "#version 130";
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
@@ -47,9 +48,6 @@ namespace blt
         // Setup Dear ImGui style
         ImGui::StyleColorsDark();
         //ImGui::StyleColorsLight();
-        
-        // Setup Platform/Renderer backends
-        ImGui_ImplOpenGL3_Init(glsl_version);
     }
     
     void create_window(size_t width, size_t height)
@@ -60,7 +58,13 @@ namespace blt
         glfwMakeContextCurrent(window.window);
         glfwSwapInterval(1); // Enable vsync
         
+        const char* glsl_version = "#version 130";
+        
+        // Setup Platform/Renderer backends
         ImGui_ImplGlfw_InitForOpenGL(window.window, true);
+        ImGui_ImplOpenGL3_Init(glsl_version);
+        
+        ImPlot::CreateContext();
     }
     
     bool draw(const std::function<void()>& run)
@@ -90,8 +94,12 @@ namespace blt
         
         glfwSwapBuffers(window.window);
         
-        
-        return glfwWindowShouldClose(window.window);
+        if (glfwWindowShouldClose(window.window))
+        {
+            cleanup();
+            return false;
+        } else
+            return true;
     }
     
     void cleanup()
