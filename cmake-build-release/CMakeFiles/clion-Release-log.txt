@@ -1,0 +1,13 @@
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_MAKE_PROGRAM=/opt/brett/jetbrains/clion-install/bin/ninja/linux/x64/ninja -G Ninja -S /home/brett/Documents/code/c++/2006-VRPTW-Pareto -B /home/brett/Documents/code/c++/2006-VRPTW-Pareto/cmake-build-release
+Found Parallel Hashmaps
+Standard Files /home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/assert.cpp;/home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/filesystem.cpp;/home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/format.cpp;/home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/loader.cpp;/home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/logging.cpp;/home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/string.cpp;/home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/std/system.cpp
+Profiler Files /home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/profiling/profiler.cpp;/home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT/src/blt/profiling/profiler_v2.cpp
+Source: /home/brett/Documents/code/c++/2006-VRPTW-Pareto
+Current Source: /home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/BLT
+Including phmap
+BLT  Successfully included!
+-- Could NOT find Doxygen (missing: DOXYGEN_EXECUTABLE) 
+-- Using X11 for window creation
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/brett/Documents/code/c++/2006-VRPTW-Pareto/cmake-build-release

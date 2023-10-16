@@ -395,7 +395,7 @@ namespace ga
     
     void program::keepElites(population& pop, size_t n)
     {
-        // we are only going to keep one but we have the option for more. At this point the population values are ordered so we can take the first
+        // we are only going to keep one, but we have the option for more. At this point the population values are ordered so we can take the first
         for (int i = 0; i < n; i++)
             pop.pops.push_back(current_population.pops[i]);
     }
