@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <fstream>
 #include <ostream>
+#include "blt/std/assert.h"
+#include <unordered_set>
 
 namespace ga
 {
@@ -42,7 +44,7 @@ namespace ga
     double program::validate_route(const route& r)
     {
         if (r.customers.empty())
-            return 0;
+            return std::numeric_limits<double>::max();
         const double dueTime = records[0].due;
         double used_capacity = 0;
         double lastDepartTime = 0;
@@ -66,8 +68,8 @@ namespace ga
     {
         auto u_distance = u.total_routes_distance;
         auto v_distance = v.total_routes_distance;
-        auto u_vehicles = static_cast<double>(u.routes.size());
-        auto v_vehicles = static_cast<double>(v.routes.size());
+        auto u_vehicles = u.routes.size();
+        auto v_vehicles = v.routes.size();
         // ∀i ∈ (1, ..., k) : ui ≤ v   ^   ∃i ∈ (1, ..., k) : ui < vi
         return (u_distance <= v_distance && u_vehicles <= v_vehicles) && (u_distance < v_distance || u_vehicles < v_vehicles);
     }
@@ -329,6 +331,17 @@ namespace ga
         // Evaluate fitness of the individuals of POP;
         rankPopulation();
         
+        double distAvg = 0;
+        size_t routes = 0;
+        size_t cnt = 0;
+        for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1; i++)
+        {
+            distAvg += current_population.pops[i].total_routes_distance;
+            routes += current_population.pops[i].routes.size();
+            cnt++;
+        }
+        history.push_back({distAvg / static_cast<double>(cnt), routes / cnt, count});
+        
         population new_pop;
         keepElites(new_pop, ELITE_COUNT); // GREETINGS
         
@@ -336,6 +349,14 @@ namespace ga
             applyCrossover(new_pop);
         
         applyMutation(new_pop);
+        
+        rebuild_population_chromosomes(new_pop);
+        //reconstruct_populations();
+        //rankPopulation();
+        
+        // secondary is applied to the chromosome itself not the routes
+        //applySecondaryMutation(new_pop);
+        
         
         while (new_pop.pops.size() > current_population.pops.size())
             new_pop.pops.pop_back();
@@ -436,7 +457,7 @@ namespace ga
     {
         for (auto& indv : pop.pops)
         {
-            if (engine.getDouble(0, 1) < MUTATION_RATE)
+            if (engine.getDouble(0, 1) <= MUTATION_RATE)
             {
                 // run until we mutate a valid route.
                 while (true)
@@ -470,34 +491,91 @@ namespace ga
                 }
             }
         }
-        // rebuild all the chromosomes. this might actually cause problems?
-        for (auto& i : pop.pops)
-            reconstruct_chromosome(i);
     }
     
     void program::applySecondaryMutation(population& pop)
     {
-    
+        for (auto& indv : pop.pops)
+        {
+            // do not destroy out best routes.
+            if (indv.rank == 1)
+                continue;
+            // add some genetic diversity for when we converge to a local min
+            if (engine.getDouble(0, 1) <= MUTATION2_RATE)
+            {
+                auto select = engine.getInt(0, 2);
+                if (select == 0)
+                {
+                    indv.c = createRandomChromosome();
+                } else
+                {
+                    auto p1 = engine.getLong(0, indv.c.genes.size() - 1);
+                    auto p2 = p1;
+                    while (p2 <= p1)
+                        p2 = engine.getLong(0, indv.c.genes.size());
+                    std::vector<std::int32_t> values;
+                    for (size_t i = p1; i < p2; i++)
+                        values.push_back(indv.c.genes[i]);
+                    if (select == 1)
+                    {
+                        // randomly generate a new sub chromosome string
+                        for (size_t i = p1; i < p2; i++)
+                        {
+                            auto index = engine.getLong(0, values.size() - 1);
+                            indv.c.genes[i] = values[index];
+                            std::iter_swap(values.begin() + static_cast<long>(index), values.end() - 1);
+                            values.pop_back();
+                        }
+                    } else
+                    {
+                        // invert a section
+                        for (size_t i = p1; i < p2; i++)
+                        {
+                            indv.c.genes[i] = values.back();
+                            values.pop_back();
+                        }
+                    }
+                    BLT_ASSERT(values.empty());
+                }
+            }
+            std::unordered_set<std::int32_t> existingValues;
+            for (const auto gene : indv.c.genes)
+            {
+                BLT_ASSERT(!existingValues.contains(gene));
+                existingValues.insert(gene);
+            }
+        }
     }
     
     void program::print()
     {
+        reconstruct_populations();
+        rankPopulation();
         double averageDist = 0;
         size_t avgVeh = 0;
         for (int i = 0; i < POPULATION_SIZE; i++)
         {
-            BLT_DEBUG("\t(%d: %d): Total Distance %f | Total Route %d", i + 1, current_population.pops[i].rank,
-                     current_population.pops[i].total_routes_distance,
-                     current_population.pops[i].routes.size());
+            BLT_DEBUG("\t(%d: %d): Total Distance %f | Total Routes %d", i + 1, current_population.pops[i].rank,
+                      current_population.pops[i].total_routes_distance,
+                      current_population.pops[i].routes.size());
             averageDist += current_population.pops[i].total_routes_distance;
             avgVeh += current_population.pops[i].routes.size();
         }
         BLT_INFO("Total/Avg Dist: (%f/%f), Total/Avg Routes: (%d/%d)", averageDist,
                  averageDist / static_cast<double>(POPULATION_SIZE), avgVeh, avgVeh / POPULATION_SIZE);
+        int printed = 0;
+        for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1 && printed < 5; i++)
+        {
+            BLT_INFO("Best in population (%d): Total distance %f | Total Routes %d", printed, current_population.pops[i].total_routes_distance,
+                     current_population.pops[i].routes.size());
+            printed++;
+        }
     }
     
     void program::validate()
     {
+        reconstruct_populations();
+        rankPopulation();
         for (int i = 0; i < POPULATION_SIZE; i++)
         {
             std::string route_values;
@@ -519,6 +597,8 @@ namespace ga
     
     void program::write(const std::string& input)
     {
+        reconstruct_populations();
+        rankPopulation();
         const auto args = blt::string::split(input, ' ');
         std::string path = "./" + blt::system::getTimeStringFS();
         if (args.size() > 1)
@@ -532,6 +612,8 @@ namespace ga
             for (const auto& r : pop.routes)
             {
                 auto rv = validate_route(r);
+                if (r.total_distance == 0)
+                    BLT_WARN("We have a zero distance! %f", rv);
                 out << "\t\t" << r.total_distance << "(valid? " << (rv != std::numeric_limits<double>::max() ? "true" : "false")
                     << "): ";
                 for (const auto c : r.customers)
@@ -545,6 +627,24 @@ namespace ga
             }
             out << "\n";
         }
+    }
+    
+    void program::rebuild_population_chromosomes(population& pop)
+    {
+        // rebuild all the chromosomes. this might actually cause problems?
+        for (auto& i : pop.pops)
+            reconstruct_chromosome(i);
+    }
+    
+    void program::writeHistory()
+    {
+        std::string file {"./ga_history_"};
+        file += blt::system::getTimeStringFS();
+        file += ".csv";
+        std::ofstream out (file);
+        out << "Generation,Distance,Routes\n";
+        for (const auto& v : history)
+            out << v.currentGen+1 << ',' << v.distance << ',' << v.routes << '\n';
     }
     
 }

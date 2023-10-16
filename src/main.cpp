@@ -6,15 +6,8 @@
 #include <blt/std/system.h>
 //#include <blt/profiling/profiler.h>
 #include <blt/profiling/profiler_v2.h>
-
-#include <algorithm>
-#include <numeric>
-#include <vector>
-#include <random>
-#include <functional>
 #include <any>
 #include <loader.h>
-#include <iostream>
 #include <blt/std/string.h>
 
 int main(int argc, const char** argv)
@@ -46,6 +39,8 @@ int main(int argc, const char** argv)
         }
         BLT_INFO("What do we do(%d/%d)? ", p.steps(), p.GENERATION_COUNT);
         std::getline(std::cin, whatToDo);
+        if (whatToDo.empty())
+            continue;
         if (blt::string::is_numeric(whatToDo))
         {
             skip = std::stoi(whatToDo);
@@ -60,11 +55,14 @@ int main(int argc, const char** argv)
                 p.validate();
             else if (blt::string::contains(whatToDo, 'w'))
                 p.write(whatToDo);
-            else
+            else if (blt::string::contains(whatToDo, 'h')){
+                p.writeHistory();
+            } else
             {
                 BLT_INFO("Not a command.");
                 continue;
             }
         }
     }
+    
 }
