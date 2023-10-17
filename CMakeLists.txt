@@ -29,6 +29,10 @@ include_directories(libraries/imgui/backends)
 add_executable(2006_VRPTW_Pareto ${VRPTW_BUILD_FILES} ${IMGUI_BUILD_FILES} ${IMGUI_BACKEND_BUILD_FILES} ${IMPLOT_BUILD_FILES})
 
 target_link_libraries(2006_VRPTW_Pareto BLT)
+
+target_compile_options(2006_VRPTW_Pareto PRIVATE -Wall -Werror -Wpedantic -Wno-comment)
+target_link_options(2006_VRPTW_Pareto PRIVATE -Wall -Werror -Wpedantic -Wno-comment)
+
 if (${BUILD_GUI})
     target_link_libraries(2006_VRPTW_Pareto glfw)
     target_link_libraries(2006_VRPTW_Pareto OpenGL::GL)

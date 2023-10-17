@@ -19,7 +19,7 @@
 namespace ga
 {
     
-    double program::distance(std::int32_t c1, std::int32_t c2)
+    double program::distance(customerID_t c1, customerID_t c2)
     {
         const auto& customer1 = records[c1];
         const auto& customer2 = records[c2];
@@ -74,9 +74,9 @@ namespace ga
         return (u_distance <= v_distance && u_vehicles <= v_vehicles) && (u_distance < v_distance || u_vehicles < v_vehicles);
     }
     
-    bool program::is_non_dominated(size_t v)
+    bool program::is_non_dominated(customerID_t v)
     {
-        for (int i = 0; i < current_population.pops.size(); i++)
+        for (customerID_t i = 0; i < static_cast<customerID_t>(current_population.pops.size()); i++)
         {
             // if v is dominated by some pop i, then v cannot be non-dominated
             if (v != i && dominates(current_population.pops[i], current_population.pops[v]))
@@ -85,12 +85,12 @@ namespace ga
         return true;
     }
     
-    double program::weighted_sum_fitness(size_t v)
+    fitness_t program::weighted_sum_fitness(individual& v)
     {
-        return ALPHA * static_cast<double>(current_population.pops[v].routes.size()) + BETA * current_population.pops[v].total_routes_distance;
+        return ALPHA * static_cast<fitness_t>(v.routes.size()) + BETA * v.total_routes_distance;
     }
     
-    size_t program::select_pop(size_t tournament_size)
+    customerID_t program::select_pop(size_t tournament_size)
     {
         
         //  A set of K individuals are randomly selected from the population
@@ -106,8 +106,8 @@ namespace ga
         if (engine.getDouble(0, 1) < 0.8)
         {
             std::int32_t min_rank = std::numeric_limits<std::int32_t>::max();
-            std::int32_t index = 0;
-            for (int i = 0; i < buffer.size(); i++)
+            size_t index = 0;
+            for (size_t i = 0; i < buffer.size(); i++)
             {
                 auto r = current_population.pops[buffer[i]].rank;
                 if (r < min_rank)
@@ -116,7 +116,7 @@ namespace ga
                     index = i;
                 }
             }
-            return index;
+            return static_cast<customerID_t>(index);
         } else
         {
             // Otherwise, any chromosome is chosen for reproduction from the tournament set.
@@ -148,13 +148,13 @@ namespace ga
             };
             
             std::vector<route_cache> possibleRoutes;
-            for (int j = 0; j < c_in.routes.size(); j++)
+            for (size_t j = 0; j < c_in.routes.size(); j++)
             {
                 const route& r = c_in.routes[j];
-                for (int i = 0; i < r.customers.size(); i++)
+                for (size_t i = 0; i < r.customers.size(); i++)
                 {
                     route r_copy = r;
-                    r_copy.customers.insert(r_copy.customers.begin() + i, v);
+                    r_copy.customers.insert(r_copy.customers.begin() + static_cast<long>(i), v);
                     double d = validate_route(r_copy);
                     if (d != std::numeric_limits<double>::max())
                         possibleRoutes.emplace_back(d, j, i);
@@ -235,7 +235,7 @@ namespace ga
         }
         
         // phase 2
-        for (int i = 1; i < routes.size(); i++)
+        for (size_t i = 1; i < routes.size(); i++)
         {
             auto& route1 = routes[i - 1];
             auto& route2 = routes[i];
@@ -328,6 +328,7 @@ namespace ga
         // by applying the routing scheme;
         reconstruct_populations();
         
+        calculatePopulationFitness();
         // Evaluate fitness of the individuals of POP;
         rankPopulation();
         
@@ -345,7 +346,7 @@ namespace ga
         population new_pop;
         keepElites(new_pop, ELITE_COUNT); // GREETINGS
         
-        while (new_pop.pops.size() < POPULATION_SIZE)
+        while (static_cast<std::int32_t>(new_pop.pops.size()) < POPULATION_SIZE)
             applyCrossover(new_pop);
         
         applyMutation(new_pop);
@@ -396,7 +397,7 @@ namespace ga
     void program::keepElites(population& pop, size_t n)
     {
         // we are only going to keep one, but we have the option for more. At this point the population values are ordered so we can take the first
-        for (int i = 0; i < n; i++)
+        for (size_t i = 0; i < n; i++)
             pop.pops.push_back(current_population.pops[i]);
     }
     
@@ -555,7 +556,7 @@ namespace ga
         size_t avgVeh = 0;
         for (int i = 0; i < POPULATION_SIZE; i++)
         {
-            BLT_DEBUG("\t(%d: %d): Total Distance %f | Total Routes %d", i + 1, current_population.pops[i].rank,
+            BLT_DEBUG("\t(%d: %d | %f): Total Distance %f | Total Routes %d", i + 1, current_population.pops[i].rank, current_population.pops[i].fitness,
                       current_population.pops[i].total_routes_distance,
                       current_population.pops[i].routes.size());
             averageDist += current_population.pops[i].total_routes_distance;
@@ -604,7 +605,7 @@ namespace ga
         if (args.size() > 1)
             path = args[1];
         std::ofstream out(path);
-        for (int i = 0; i < current_population.pops.size(); i++)
+        for (size_t i = 0; i < current_population.pops.size(); i++)
         {
             const auto& pop = current_population.pops[i];
             out << '(' << i << ") " << pop.rank << ": " << pop.total_routes_distance << " | " << pop.routes.size() << "\n";
@@ -638,13 +639,19 @@ namespace ga
     
     void program::writeHistory()
     {
-        std::string file {"./ga_history_"};
+        std::string file{"./ga_history_"};
         file += blt::system::getTimeStringFS();
         file += ".csv";
-        std::ofstream out (file);
+        std::ofstream out(file);
         out << "Generation,Distance,Routes\n";
         for (const auto& v : history)
-            out << v.currentGen+1 << ',' << v.distance << ',' << v.routes << '\n';
+            out << v.currentGen + 1 << ',' << v.distance << ',' << v.routes << '\n';
+    }
+    
+    void program::calculatePopulationFitness()
+    {
+        for (auto& pop : current_population.pops)
+            pop.fitness = weighted_sum_fitness(pop);
     }
     
 }

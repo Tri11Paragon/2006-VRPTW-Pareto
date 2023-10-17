@@ -11,6 +11,7 @@
 #include <blt/std/string.h>
 #include <blt/window/window.h>
 #include <implot.h>
+#include "blt/std/assert.h"
 
 int main(int argc, const char** argv)
 {
@@ -36,11 +37,6 @@ int main(int argc, const char** argv)
     std::int32_t skip = 0;
     
     std::string whatToDo;
-    
-    blt::create_window();
-    while (blt::draw([]() -> void {
-        ImPlot::ShowDemoWindow();
-    }));
     
     while (true)
     {

@@ -18,6 +18,11 @@
 
 namespace ga
 {
+    typedef std::int32_t customerID_t;
+    typedef std::int32_t rank_t;
+    typedef double fitness_t;
+    typedef double distance_t;
+    
     static constexpr std::int32_t CUSTOMER_COUNT = 100;
     static constexpr std::int32_t DEFAULT_POPULATION_SIZE = 500;
     static constexpr std::int32_t DEFAULT_GENERATION_COUNT = 350;
@@ -28,26 +33,27 @@ namespace ga
     static constexpr double DEFAULT_MUTATION_2_RATE = 0.1;
     
     // weighted sum fitness
-    static constexpr double ALPHA = 100;
-    static constexpr double BETA = 0.001;
+    static constexpr fitness_t ALPHA = 100;
+    static constexpr fitness_t BETA = 0.001;
     
     struct chromosome
     {
-        std::array<std::int32_t, CUSTOMER_COUNT> genes{};
+        std::array<customerID_t, CUSTOMER_COUNT> genes{};
     };
     
     struct route
     {
-        std::vector<std::int32_t> customers;
-        double total_distance = 0;
+        std::vector<customerID_t> customers;
+        distance_t total_distance = 0;
     };
     
     struct individual
     {
         chromosome c;
         std::vector<route> routes{};
-        double total_routes_distance = 0;
-        std::int32_t rank = 0;
+        distance_t total_routes_distance = 0;
+        rank_t rank = 0;
+        fitness_t fitness = 0;
     };
     
     struct population
@@ -117,7 +123,7 @@ namespace ga
         class program
         {
             private:
-                double distance(std::int32_t c1, std::int32_t c2);
+                double distance(customerID_t c1, customerID_t c2);
                 
                 double calculate_distance(const route& r);
                 
@@ -125,11 +131,11 @@ namespace ga
                 
                 static bool dominates(const individual& u, const individual& v);
                 
-                bool is_non_dominated(size_t v);
+                bool is_non_dominated(customerID_t v);
                 
-                double weighted_sum_fitness(size_t v);
+                static double weighted_sum_fitness(individual& v);
                 
-                size_t select_pop(size_t tournament_size);
+                customerID_t select_pop(size_t tournament_size);
                 
                 static void remove_from(const route& r, individual& c);
                 
@@ -146,6 +152,7 @@ namespace ga
                 
                 chromosome createRandomChromosome();
                 
+                void calculatePopulationFitness();
                 void rankPopulation();
                 
                 void keepElites(population& pop, size_t n);
