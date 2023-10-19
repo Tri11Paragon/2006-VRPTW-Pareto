@@ -18,13 +18,14 @@
 
 namespace ga
 {
+    
     typedef std::int32_t customerID_t;
     typedef std::int32_t rank_t;
     typedef double fitness_t;
     typedef double distance_t;
     
     static constexpr std::int32_t CUSTOMER_COUNT = 100;
-    static constexpr std::int32_t DEFAULT_POPULATION_SIZE = 500;
+    static constexpr std::int32_t DEFAULT_POPULATION_SIZE = 300;
     static constexpr std::int32_t DEFAULT_GENERATION_COUNT = 350;
     static constexpr std::int32_t DEFAULT_TOURNAMENT_SIZE = 4;
     static constexpr std::int32_t DEFAULT_ELITE_COUNT = 1;
@@ -35,6 +36,7 @@ namespace ga
     // weighted sum fitness
     static constexpr fitness_t ALPHA = 100;
     static constexpr fitness_t BETA = 0.001;
+    constexpr double EPSILON = 0.0001;
     
     struct chromosome
     {
@@ -146,6 +148,8 @@ namespace ga
                 static void reconstruct_chromosome(individual& i);
                 
                 static void rebuild_population_chromosomes(population& pop);
+                
+                void add_step_to_history();
             
             protected:
                 std::vector<route> constructRoute(const chromosome& c);
@@ -188,17 +192,29 @@ namespace ga
                 
                 void write(const std::string& input);
                 void writeHistory();
+                void reset();
+                
+                static void write_history(const std::string& path, const std::vector<point>& history);
                 
                 [[nodiscard]] inline size_t steps() const
                 {
                     return count;
+                }
+                
+                [[nodiscard]] std::vector<point> getBestHistory() const {
+                    return best_history;
+                }
+                
+                [[nodiscard]] std::vector<point> getAvgHistory() const {
+                    return avg_history;
                 }
             
             private:
                 size_t count = 0;
                 std::int32_t capacity;
                 std::vector<record> records;
-                std::vector<point> history;
+                std::vector<point> best_history;
+                std::vector<point> avg_history;
                 population current_population;
                 random_engine engine;
             public:
@@ -209,6 +225,7 @@ namespace ga
                 const double CROSSOVER_RATE;
                 const double MUTATION_RATE;
                 const double MUTATION2_RATE;
+                bool using_fitness = false;
         };
         
         template<typename T>

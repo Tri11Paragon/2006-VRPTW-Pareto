@@ -1,0 +1,471 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-RelWithDebInfo-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.24"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "libraries/BLT",
+					"jsonFile" : "directory-libraries.BLT-RelWithDebInfo-5a66f6c7b7b59c5dbec1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "libraries/BLT",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "libraries/glfw-3.3.8",
+					"childIndexes" : 
+					[
+						3,
+						4,
+						5
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-libraries.glfw-3.3.8-RelWithDebInfo-4218ff197767a5e1296e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 2,
+					"source" : "libraries/glfw-3.3.8",
+					"targetIndexes" : 
+					[
+						30
+					]
+				},
+				{
+					"build" : "libraries/glfw-3.3.8/src",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-libraries.glfw-3.3.8.src-RelWithDebInfo-9a647cefced42bcae112.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 2,
+					"source" : "libraries/glfw-3.3.8/src",
+					"targetIndexes" : 
+					[
+						9,
+						31
+					]
+				},
+				{
+					"build" : "libraries/glfw-3.3.8/examples",
+					"jsonFile" : "directory-libraries.glfw-3.3.8.examples-RelWithDebInfo-bae4a5c3554dc2f59760.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 2,
+					"source" : "libraries/glfw-3.3.8/examples",
+					"targetIndexes" : 
+					[
+						2,
+						8,
+						11,
+						18,
+						20,
+						22,
+						23,
+						24,
+						32
+					]
+				},
+				{
+					"build" : "libraries/glfw-3.3.8/tests",
+					"jsonFile" : "directory-libraries.glfw-3.3.8.tests-RelWithDebInfo-9e15ef9d49a3139d3497.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 2,
+					"source" : "libraries/glfw-3.3.8/tests",
+					"targetIndexes" : 
+					[
+						3,
+						4,
+						5,
+						6,
+						7,
+						10,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						19,
+						21,
+						25,
+						26,
+						27,
+						28,
+						29,
+						33
+					]
+				}
+			],
+			"name" : "RelWithDebInfo",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "2006_VRPTW_Pareto",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1
+					],
+					"name" : "BLT",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2,
+						3,
+						4,
+						5
+					],
+					"name" : "GLFW",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						24,
+						25,
+						26,
+						27,
+						28,
+						29,
+						30,
+						31,
+						32,
+						33
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "2006_VRPTW_Pareto::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-2006_VRPTW_Pareto-RelWithDebInfo-1eca810ec8f64e187d46.json",
+					"name" : "2006_VRPTW_Pareto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "BLT::@834776b52e80069b1648",
+					"jsonFile" : "target-BLT-RelWithDebInfo-e3581a7339e9cd5a3850.json",
+					"name" : "BLT",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "boing::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-boing-RelWithDebInfo-85f95d6259076720bcf6.json",
+					"name" : "boing",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "clipboard::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-clipboard-RelWithDebInfo-2a5625cfc2233aeabcb2.json",
+					"name" : "clipboard",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "cursor::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-cursor-RelWithDebInfo-ab3e612e644c131f2231.json",
+					"name" : "cursor",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "empty::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-empty-RelWithDebInfo-3e3345ee80e50f9f84dc.json",
+					"name" : "empty",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "events::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-events-RelWithDebInfo-a0fe440dee9020064171.json",
+					"name" : "events",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "gamma::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-gamma-RelWithDebInfo-98401d7f66457ae0865d.json",
+					"name" : "gamma",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "gears::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-gears-RelWithDebInfo-b9cb155f498c15c8b9f8.json",
+					"name" : "gears",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "glfw::@be113d0d45276967d6fa",
+					"jsonFile" : "target-glfw-RelWithDebInfo-7226079a656991435f46.json",
+					"name" : "glfw",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "glfwinfo::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-glfwinfo-RelWithDebInfo-1e5a8cc1988e07e0925f.json",
+					"name" : "glfwinfo",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "heightmap::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-heightmap-RelWithDebInfo-c2af2cb17a703b6d76c2.json",
+					"name" : "heightmap",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "icon::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-icon-RelWithDebInfo-5426ded1faa7d19a383f.json",
+					"name" : "icon",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "iconify::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-iconify-RelWithDebInfo-bfbce487b928c0e6c6d0.json",
+					"name" : "iconify",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "inputlag::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-inputlag-RelWithDebInfo-1c212c09645e3b6f20a0.json",
+					"name" : "inputlag",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "joysticks::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-joysticks-RelWithDebInfo-cec7678b1ab11c9bc78c.json",
+					"name" : "joysticks",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "monitors::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-monitors-RelWithDebInfo-dddfccce664b79cca4ab.json",
+					"name" : "monitors",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "msaa::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-msaa-RelWithDebInfo-e15a7537d00b43e53dfb.json",
+					"name" : "msaa",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "offscreen::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-offscreen-RelWithDebInfo-e2ac0915f0bb7d57fa75.json",
+					"name" : "offscreen",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "opacity::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-opacity-RelWithDebInfo-d0938e4ad8793d89e15d.json",
+					"name" : "opacity",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "particles::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-particles-RelWithDebInfo-f9fb15ecdff999e82eb3.json",
+					"name" : "particles",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "reopen::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-reopen-RelWithDebInfo-5258121aeb5a64c2d11b.json",
+					"name" : "reopen",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "sharing::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-sharing-RelWithDebInfo-5e232d467f264bb0ea40.json",
+					"name" : "sharing",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "simple::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-simple-RelWithDebInfo-cc5a9b207b0809b20ebd.json",
+					"name" : "simple",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "splitview::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-splitview-RelWithDebInfo-a79f223960c9f53c9a45.json",
+					"name" : "splitview",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "tearing::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-tearing-RelWithDebInfo-a980f287022dfd185b59.json",
+					"name" : "tearing",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "threads::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-threads-RelWithDebInfo-1048d2ab1621708cf650.json",
+					"name" : "threads",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "timeout::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-timeout-RelWithDebInfo-9697acd251a4ca32fab0.json",
+					"name" : "timeout",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "title::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-title-RelWithDebInfo-d19e1529cd999fedddcf.json",
+					"name" : "title",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "triangle-vulkan::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-triangle-vulkan-RelWithDebInfo-7616c467d57eca1b0415.json",
+					"name" : "triangle-vulkan",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "uninstall::@11100b5f569bbddc0ac5",
+					"jsonFile" : "target-uninstall-RelWithDebInfo-267e6eb2f157b50971fd.json",
+					"name" : "uninstall",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "update_mappings::@be113d0d45276967d6fa",
+					"jsonFile" : "target-update_mappings-RelWithDebInfo-14a6e66d294f7ae52857.json",
+					"name" : "update_mappings",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "wave::@78cc0c92a48508a380cc",
+					"jsonFile" : "target-wave-RelWithDebInfo-9acc073552c36bcef73d.json",
+					"name" : "wave",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "windows::@cb12dac1b2c77ddc8550",
+					"jsonFile" : "target-windows-RelWithDebInfo-c54c202395236b4bd12c.json",
+					"name" : "windows",
+					"projectIndex" : 2
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/cmake-build-relwithdebinfo",
+		"source" : "/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 5
+	}
+}

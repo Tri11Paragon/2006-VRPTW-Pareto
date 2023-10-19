@@ -18,6 +18,9 @@
 
 namespace ga
 {
+#define HARD_VRPTW(lastDepartTime, route) (lastDepartTime + route.service_time)
+//#define HARD_VRPTW(lastDepartTime, route) (lastDepartTime)
+    
     
     double program::distance(customerID_t c1, customerID_t c2)
     {
@@ -51,10 +54,14 @@ namespace ga
         for (const auto& v : r.customers)
         {
             const auto& record = records[v];
-            if (used_capacity + record.demand > capacity || lastDepartTime > record.due ||
+            // C101 edge case
+//            if (lastDepartTime + record.service_time > record.due && r.customers.size() == 1)
+//                return calculate_distance(r);
+            if (used_capacity + record.demand > capacity || HARD_VRPTW(lastDepartTime, record) > record.due ||
                 lastDepartTime + record.service_time > dueTime)
                 return std::numeric_limits<double>::max(); // by returning max we will never use this solution. it also remains possible to check for error
             used_capacity += record.demand;
+            // handle early arrival time by making it wait.
             lastDepartTime = std::max(lastDepartTime, record.ready) + record.service_time;
         }
         return calculate_distance(r);
@@ -94,7 +101,7 @@ namespace ga
     {
         
         //  A set of K individuals are randomly selected from the population
-        std::vector<int> buffer;
+        std::vector<customerID_t> buffer;
         buffer.reserve(tournament_size);
         while (buffer.size() < tournament_size)
         {
@@ -105,18 +112,33 @@ namespace ga
         // If r is less than 0.8 (0.8 set empirically), the fittest individual in the tournament set is then chosen as the one to be used for reproduction.
         if (engine.getDouble(0, 1) < 0.8)
         {
-            std::int32_t min_rank = std::numeric_limits<std::int32_t>::max();
             size_t index = 0;
-            for (size_t i = 0; i < buffer.size(); i++)
+            if (using_fitness)
             {
-                auto r = current_population.pops[buffer[i]].rank;
-                if (r < min_rank)
+                fitness_t min_fitness = std::numeric_limits<fitness_t>::max();
+                for (size_t i = 0; i < buffer.size(); i++)
                 {
-                    min_rank = r;
-                    index = i;
+                    auto f = current_population.pops[buffer[i]].fitness;
+                    if (f < min_fitness)
+                    {
+                        min_fitness = f;
+                        index = i;
+                    }
+                }
+            } else
+            {
+                rank_t min_rank = std::numeric_limits<rank_t>::max();
+                for (size_t i = 0; i < buffer.size(); i++)
+                {
+                    auto r = current_population.pops[buffer[i]].rank;
+                    if (r < min_rank)
+                    {
+                        min_rank = r;
+                        index = i;
+                    }
                 }
             }
-            return static_cast<customerID_t>(index);
+            return buffer[index];
         } else
         {
             // Otherwise, any chromosome is chosen for reproduction from the tournament set.
@@ -186,12 +208,65 @@ namespace ga
         for (auto& c : current_population.pops)
         {
             c.rank = 0;
+            c.fitness = 0;
             c.total_routes_distance = 0;
             c.routes = constructRoute(c.c);
             for (const auto& r : c.routes)
                 c.total_routes_distance += r.total_distance;
-            
-            //BLT_TRACE("Current population rank %d, total dist %f, with %d routes", c.rank, c.total_routes_distance, c.routes.size());
+        }
+    }
+    
+    void program::rebuild_population_chromosomes(population& pop)
+    {
+        // rebuild all the chromosomes. this might actually cause problems?
+        for (auto& i : pop.pops)
+            reconstruct_chromosome(i);
+    }
+    
+    void program::add_step_to_history()
+    {
+        double best_distAvg = 0;
+        double avg_distAvg = 0;
+        size_t best_routes = 0;
+        size_t avg_routes = 0;
+        size_t cnt = 0;
+        size_t best_cnt = 0;
+        fitness_t fit = std::numeric_limits<double>::max();
+        for (const auto& i : current_population.pops)
+            fit = std::min(fit, i.fitness);
+        for (int i = 0; i < POPULATION_SIZE; i++)
+        {
+            auto total_dist = current_population.pops[i].total_routes_distance;
+            auto total_routes = current_population.pops[i].routes.size();
+            avg_distAvg += total_dist;
+            avg_routes += total_routes;
+            cnt++;
+            auto lf = current_population.pops[i].fitness;
+            if (using_fitness && !(lf >= fit - EPSILON && lf <= fit + EPSILON))
+                continue;
+            if (!using_fitness && current_population.pops[i].rank != 1)
+                continue;
+            best_distAvg += total_dist;
+            best_routes += total_routes;
+            best_cnt++;
+        }
+        best_history.push_back({best_distAvg / static_cast<double>(best_cnt), best_routes / best_cnt, count});
+        avg_history.push_back({avg_distAvg / static_cast<double>(cnt), avg_routes / cnt, count});
+    }
+    
+    void program::reconstruct_chromosome(individual& i)
+    {
+        std::memset(i.c.genes.data(), 0, sizeof(customerID_t) * CUSTOMER_COUNT);
+        for (const auto v : i.c.genes)
+        {
+            if (v != 0)
+                BLT_ERROR("failure of setting");
+        }
+        int insertion_index = 0;
+        for (const auto& route : i.routes)
+        {
+            for (const auto& customer : route.customers)
+                i.c.genes[insertion_index++] = customer;
         }
     }
     
@@ -218,15 +293,15 @@ namespace ga
                 // we assume when a vehicle leaves it will teleport to the next destination immediately but must be able to service BEFORE closing
                 // if this isn't the intended behaviour remove the r.service_time from the second condition
                 // lastDepartTime + r.service_time is consistent with "and must return before or at time bn+1"
-                if ((currentCapacity + r.demand > capacity || lastDepartTime > r.due || lastDepartTime + r.service_time > dueTime))
-                {
-//                    BLT_INFO("%f + %f > %f", lastDepartTime, r.service_time, r.due);
-//                    BLT_INFO_STREAM << currentRoute.customers.size() << " " << (currentCapacity + r.demand > capacity)
-//                                    << (lastDepartTime + r.service_time > r.due) << (lastDepartTime + r.service_time > dueTime) << "\n";
+//                if (lastDepartTime + r.service_time > r.due && currentRoute.customers.empty())
+//                {
+//                    currentRoute.customers.push_back(c.genes[index++]); // c101 edge case
+//                    break;
+//                }
+                if ((currentCapacity + r.demand > capacity || HARD_VRPTW(lastDepartTime, r) > r.due || lastDepartTime + r.service_time > dueTime))
                     break;
-                }
                 currentCapacity += r.demand;
-                // wait until the server opens, add the service time, move on
+                // wait until the customer opens, add the service time, move on
                 lastDepartTime = std::max(lastDepartTime, r.ready) + r.service_time;
                 currentRoute.customers.push_back(c.genes[index++]);
             }
@@ -332,16 +407,7 @@ namespace ga
         // Evaluate fitness of the individuals of POP;
         rankPopulation();
         
-        double distAvg = 0;
-        size_t routes = 0;
-        size_t cnt = 0;
-        for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1; i++)
-        {
-            distAvg += current_population.pops[i].total_routes_distance;
-            routes += current_population.pops[i].routes.size();
-            cnt++;
-        }
-        history.push_back({distAvg / static_cast<double>(cnt), routes / cnt, count});
+        add_step_to_history();
         
         population new_pop;
         keepElites(new_pop, ELITE_COUNT); // GREETINGS
@@ -355,12 +421,12 @@ namespace ga
         //reconstruct_populations();
         //rankPopulation();
         
-        // secondary is applied to the chromosome itself not the routes
+        // secondary is applied to the chromosome itself not the best_routes
         //applySecondaryMutation(new_pop);
         
         
-        while (new_pop.pops.size() > current_population.pops.size())
-            new_pop.pops.pop_back();
+        //while (new_pop.pops.size() > current_population.pops.size())
+        //    new_pop.pops.pop_back();
         
         current_population = new_pop;
         count++;
@@ -396,25 +462,25 @@ namespace ga
     
     void program::keepElites(population& pop, size_t n)
     {
+//        constexpr bool useRank = false;
+//        if constexpr (useRank){
+//            for (size_t j = 0; j < n; j++)
+//                for (size_t i = 0; i < current_population.pops.size() && current_population.pops[i].rank == 1; i++)
+//                    pop.pops.push_back(current_population.pops[i]);
+//        } else
         // we are only going to keep one, but we have the option for more. At this point the population values are ordered so we can take the first
-        for (size_t i = 0; i < n; i++)
+        for (size_t i = 0; i < n && current_population.pops[i].rank == 1; i++)
             pop.pops.push_back(current_population.pops[i]);
     }
     
-    void program::reconstruct_chromosome(individual& i)
+    bool routes_same(const route& r1, const route& r2)
     {
-        std::memset(i.c.genes.data(), 0, sizeof(std::int32_t) * CUSTOMER_COUNT);
-        for (const auto v : i.c.genes)
-        {
-            if (v != 0)
-                BLT_ERROR("failure of setting");
-        }
-        int insertion_index = 0;
-        for (const auto& route : i.routes)
-        {
-            for (const auto& customer : route.customers)
-                i.c.genes[insertion_index++] = customer;
-        }
+        if (r1.customers.size() != r2.customers.size())
+            return false;
+        for (size_t i = 0; i < r1.customers.size(); i++)
+            if (r1.customers[i] != r2.customers[i])
+                return false;
+        return true;
     }
     
     void program::applyCrossover(population& pop)
@@ -431,14 +497,21 @@ namespace ga
         // don't apply crossover, just move the parents in unchanged.
         if (engine.getDouble(0, 1) > CROSSOVER_RATE)
         {
-            pop.pops.push_back(parent1);
+            if (pop.pops.size() % 2 == 0)
+                pop.pops.push_back(parent1);
             pop.pops.push_back(parent2);
             return;
         }
         
-        const auto& r1 = parent1.routes[engine.getLong(0ul, parent1.routes.size() - 1)];
-        const auto& r2 = parent2.routes[engine.getLong(0ul, parent2.routes.size() - 1)];
+        auto route1Index = engine.getLong(0ul, parent1.routes.size() - 1);
+        auto route2Index = engine.getLong(0ul, parent2.routes.size() - 1);
         
+        while (routes_same(parent1.routes[route1Index], parent2.routes[route2Index]))
+            route2Index = engine.getLong(0ul, parent2.routes.size() - 1);
+        
+        const auto& r1 = parent1.routes[route1Index];
+        const auto& r2 = parent2.routes[route2Index];
+            
         individual c1 = parent1, c2 = parent2;
         
         // remove r1 from p2 and r2 from p1
@@ -551,12 +624,14 @@ namespace ga
     void program::print()
     {
         reconstruct_populations();
+        calculatePopulationFitness();
         rankPopulation();
         double averageDist = 0;
         size_t avgVeh = 0;
         for (int i = 0; i < POPULATION_SIZE; i++)
         {
-            BLT_DEBUG("\t(%d: %d | %f): Total Distance %f | Total Routes %d", i + 1, current_population.pops[i].rank, current_population.pops[i].fitness,
+            BLT_DEBUG("\t(%d: %d | %f): Total Distance %f | Total Routes %d", i + 1, current_population.pops[i].rank,
+                      current_population.pops[i].fitness,
                       current_population.pops[i].total_routes_distance,
                       current_population.pops[i].routes.size());
             averageDist += current_population.pops[i].total_routes_distance;
@@ -565,11 +640,24 @@ namespace ga
         BLT_INFO("Total/Avg Dist: (%f/%f), Total/Avg Routes: (%d/%d)", averageDist,
                  averageDist / static_cast<double>(POPULATION_SIZE), avgVeh, avgVeh / POPULATION_SIZE);
         int printed = 0;
-        for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1 && printed < 5; i++)
+        if (using_fitness)
         {
-            BLT_INFO("Best in population (%d): Total distance %f | Total Routes %d", printed, current_population.pops[i].total_routes_distance,
-                     current_population.pops[i].routes.size());
-            printed++;
+            auto lowest = current_population.pops[0];
+            for (const auto& i : current_population.pops)
+            {
+                if (i.fitness < lowest.fitness)
+                    lowest = i;
+            }
+            BLT_INFO("Best in population (%f): Total distance %f | Total Routes %d", lowest.fitness, lowest.total_routes_distance,
+                     lowest.routes.size());
+        } else
+        {
+            for (int i = 0; i < POPULATION_SIZE && current_population.pops[i].rank == 1 && printed < 5; i++)
+            {
+                BLT_INFO("Best in population (%d): Total distance %f | Total Routes %d", printed, current_population.pops[i].total_routes_distance,
+                         current_population.pops[i].routes.size());
+                printed++;
+            }
         }
     }
     
@@ -608,7 +696,7 @@ namespace ga
         for (size_t i = 0; i < current_population.pops.size(); i++)
         {
             const auto& pop = current_population.pops[i];
-            out << '(' << i << ") " << pop.rank << ": " << pop.total_routes_distance << " | " << pop.routes.size() << "\n";
+            out << '(' << i << ") " << pop.rank << " " << pop.fitness << ": " << pop.total_routes_distance << " | " << pop.routes.size() << "\n";
             out << "\troutes:\n";
             for (const auto& r : pop.routes)
             {
@@ -630,28 +718,38 @@ namespace ga
         }
     }
     
-    void program::rebuild_population_chromosomes(population& pop)
+    void program::write_history(const std::string& path, const std::vector<point>& history)
     {
-        // rebuild all the chromosomes. this might actually cause problems?
-        for (auto& i : pop.pops)
-            reconstruct_chromosome(i);
+        std::ofstream out(path);
+        out << "Generation,Distance,Routes\n";
+        for (const auto& v : history)
+            out << v.currentGen + 1 << ',' << v.distance << ',' << v.routes << '\n';
     }
     
     void program::writeHistory()
     {
-        std::string file{"./ga_history_"};
-        file += blt::system::getTimeStringFS();
-        file += ".csv";
-        std::ofstream out(file);
-        out << "Generation,Distance,Routes\n";
-        for (const auto& v : history)
-            out << v.currentGen + 1 << ',' << v.distance << ',' << v.routes << '\n';
+        std::string best_file{"./ga_bests_history_"};
+        best_file += blt::system::getTimeStringFS();
+        best_file += ".csv";
+        write_history(best_file, best_history);
+        
+        std::string avg_file{"./ga_avg_history_"};
+        avg_file += blt::system::getTimeStringFS();
+        avg_file += ".csv";
+        write_history(avg_file, avg_history);
     }
     
     void program::calculatePopulationFitness()
     {
         for (auto& pop : current_population.pops)
             pop.fitness = weighted_sum_fitness(pop);
+    }
+    
+    void program::reset()
+    {
+        current_population.pops.clear();
+        for (int i = 0; i < POPULATION_SIZE; i++)
+            current_population.pops.emplace_back(createRandomChromosome());
     }
     
 }

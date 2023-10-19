@@ -1,4 +1,4 @@
-# Install script for directory: /home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/glfw-3.3.8/src
+# Install script for directory: /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/glfw-3.3.8/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -43,6 +43,6 @@ if(NOT DEFINED CMAKE_OBJDUMP)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/brett/Documents/code/c++/2006-VRPTW-Pareto/cmake-build-release/libraries/glfw-3.3.8/src/libglfw3.a")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/cmake-build-release/libraries/glfw-3.3.8/src/libglfw3.a")
 endif()
 

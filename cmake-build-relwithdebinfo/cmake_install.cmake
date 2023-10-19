@@ -1,4 +1,4 @@
-# Install script for directory: /home/brett/Documents/code/c++/2006-VRPTW-Pareto
+# Install script for directory: /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,12 +44,12 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/brett/Documents/code/c++/2006-VRPTW-Pareto/cmake-build-relwithdebinfo/libraries/BLT/cmake_install.cmake")
+  include("/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/cmake-build-relwithdebinfo/libraries/BLT/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/brett/Documents/code/c++/2006-VRPTW-Pareto/cmake-build-relwithdebinfo/libraries/glfw-3.3.8/cmake_install.cmake")
+  include("/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/cmake-build-relwithdebinfo/libraries/glfw-3.3.8/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -60,5 +60,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/brett/Documents/code/c++/2006-VRPTW-Pareto/cmake-build-relwithdebinfo/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/cmake-build-relwithdebinfo/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

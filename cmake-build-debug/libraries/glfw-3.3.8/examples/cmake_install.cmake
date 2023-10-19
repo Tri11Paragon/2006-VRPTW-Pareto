@@ -1,4 +1,4 @@
-# Install script for directory: /home/brett/Documents/code/c++/2006-VRPTW-Pareto/libraries/glfw-3.3.8/examples
+# Install script for directory: /home/brett/Documents/code/c++/research/2006-VRPTW-Pareto/libraries/glfw-3.3.8/examples
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
