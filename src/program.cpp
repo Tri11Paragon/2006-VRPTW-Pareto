@@ -326,19 +326,18 @@ namespace ga
             auto& route2 = routes[i];
             auto rc2 = routes[i];
             
-            auto back = rc1.customers.back();
-            auto front = rc2.customers.front();
+//            auto back = rc1.customers.back();
+//            auto front = rc2.customers.front();
             
-            rc1.customers.pop_back();
-            std::erase(rc2.customers, front);
-            
-            rc1.customers.push_back(front);
-            rc2.customers.push_back(back);
+//            rc1.customers.pop_back();
+//            std::erase(rc2.customers, front);
+//
+//            rc1.customers.push_back(front);
+//            rc2.customers.push_back(back);
+            std::swap(rc1.customers.back(), rc1.customers.front());
             
             // if they are not valid, skip
-            if (!validate_route(rc1))
-                continue;
-            if (!validate_route(rc2))
+            if (!validate_route(rc1) || !validate_route(rc2))
                 continue;
             
             rc1.total_distance = calculate_distance(rc1);

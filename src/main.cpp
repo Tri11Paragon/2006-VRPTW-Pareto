@@ -13,6 +13,31 @@
 #include <implot.h>
 #include "blt/std/assert.h"
 #include "blt/std/time.h"
+#include "blt/std/logging.h"
+#include "blt/std/format.h"
+#include <queue>
+#include <vector>
+#include <thread>
+#include <mutex>
+
+struct datagram
+{
+    int32_t capacity;
+    std::vector<std::string> problems;
+};
+
+namespace blt
+{
+    inline std::string filename(const std::string& path){
+        if (loggingFormat.printFullFileName)
+            return path;
+        auto paths = split(path, "/");
+        auto final = paths[paths.size()-1];
+        if (final == "/")
+            return paths[paths.size()-2];
+        return final;
+    }
+}
 
 int main(int argc, const char** argv)
 {
@@ -69,112 +94,77 @@ int main(int argc, const char** argv)
                 p.reset();
             else if (blt::string::contains(whatToDo, "t"))
             {
-                std::vector<std::vector<ga::point>> avg_history;
-                std::vector<std::vector<ga::point>> best_history;
-                std::vector<ga::point> best_solution;
-                std::vector<ga::point> worst_best_solution;
-                
-                static constexpr std::int32_t GEN_COUNT = 500;
-                
-                for (int i = 0; i < 25; i++)
-                {
-                    auto problem = load_problem(args.get<std::string>("problemset"));
-                    
-                    ga::program cp(args.get<int32_t>("capacity"), std::move(problem));
-                    
-                    for (int j = 0; j < GEN_COUNT; j++)
-                        cp.executeStep();
-                    
-                    auto b = cp.getBestHistory();
-                    auto a = cp.getBestHistory();
-                    
-                    avg_history.push_back(a);
-                    best_history.push_back(b);
-                    
-                    if (best_solution.empty())
-                        best_solution = b;
-                    if (worst_best_solution.empty())
-                        worst_best_solution = b;
-                    
-                    auto avgCars = std::numeric_limits<unsigned long>::max();
-                    auto avgDist = std::numeric_limits<double>::max();
-                    
-                    for (auto v : b)
-                    {
-                        if (v.routes <= avgCars && v.distance <= avgDist)
-                        {
-                            avgCars = v.routes;
-                            avgDist = v.distance;
-                        }
+                std::queue<datagram> data;
+                data.emplace(
+                    200,
+                    std::vector<std::string>{
+                        "../problems/r101.set",
+                        "../problems/r102.set",
+                        "../problems/r103.set",
+                        "../problems/r104.set",
+                        "../problems/r105.set",
+                        "../problems/r106.set",
+                        "../problems/r107.set",
+                        "../problems/r108.set",
+                        "../problems/r109.set",
+                        "../problems/r110.set",
+                        "../problems/r111.set",
+                        "../problems/c101.set",
+                        "../problems/c102.set",
+                        "../problems/c103.set",
+                        "../problems/c104.set",
+                        "../problems/c105.set",
+                        "../problems/c106.set",
+                        "../problems/c107.set",
+                        "../problems/c108.set",
+                        "../problems/rc101.set",
+                        "../problems/rc102.set",
+                        "../problems/rc103.set",
+                        "../problems/rc104.set",
+                        "../problems/rc105.set",
+                        "../problems/rc106.set",
+                        "../problems/rc107.set",
+                        "../problems/rc108.set",
                     }
-                    
-                    auto bAvgCars = std::numeric_limits<unsigned long>::max();
-                    auto bAvgDist = std::numeric_limits<double>::max();
-                    
-                    for (auto v : best_solution)
-                    {
-                        if (v.routes <= bAvgCars && v.distance <= bAvgDist)
-                        {
-                            bAvgCars = v.routes;
-                            bAvgDist = v.distance;
-                        }
+                );
+                data.emplace(
+                    1000,
+                    std::vector<std::string>{
+                            "../problems/r201.set",
+                            "../problems/r202.set",
+                            "../problems/r203.set",
+                            "../problems/r204.set",
+                            "../problems/r205.set",
+                            "../problems/r206.set",
+                            "../problems/r207.set",
+                            "../problems/r208.set",
+                            "../problems/r209.set",
+                            "../problems/r210.set",
+                            "../problems/r211.set",
+                            "../problems/rc201.set",
+                            "../problems/rc202.set",
+                            "../problems/rc203.set",
+                            "../problems/rc204.set",
+                            "../problems/rc205.set",
+                            "../problems/rc206.set",
+                            "../problems/rc207.set",
+                            "../problems/rc208.set"
                     }
-                    
-                    if (avgCars <= bAvgCars && avgDist <= bAvgDist)
-                        best_solution = b;
-                    
-                    auto wAvgCars = std::numeric_limits<unsigned long>::max();
-                    auto wAvgDist = std::numeric_limits<double>::max();
-                    
-                    for (auto v : worst_best_solution)
-                    {
-                        if (v.routes <= wAvgCars && v.distance <= wAvgDist)
-                        {
-                            wAvgCars = v.routes;
-                            wAvgDist = v.distance;
-                        }
+                );
+                data.emplace(
+                    700,
+                    std::vector<std::string>{
+                            "../problems/c101.set",
+                            "../problems/c102.set",
+                            "../problems/c103.set",
+                            "../problems/c104.set",
+                            "../problems/c105.set",
+                            "../problems/c106.set",
+                            "../problems/c107.set",
+                            "../problems/c108.set"
                     }
-                    
-                    if (avgCars >= wAvgCars && avgDist >= wAvgDist)
-                        worst_best_solution = b;
-                }
-                
-                auto bestCars = std::numeric_limits<unsigned long>::max();
-                auto bestDist = std::numeric_limits<double>::max();
-                
-                auto worstCars = 0ul;
-                auto worstDist = 0.0;
-                
-                for (const auto& v : worst_best_solution)
-                {
-                    if (v.distance >= worstDist && v.routes >= worstCars)
-                    {
-                        worstCars = v.routes;
-                        worstDist = v.distance;
-                    }
-                }
-                
-                BLT_INFO("Over all the worst best solutions are: %f distance %d routes", worstDist, worstCars);
-                
-                for (const auto& v : best_solution)
-                {
-                    if (v.distance <= bestDist && v.routes <= bestCars)
-                    {
-                        bestCars = v.routes;
-                        bestDist = v.distance;
-                    }
-                }
-                BLT_INFO("Over all the best solutions are: %f distance %d routes", bestDist, bestCars);
-                
-                std::string best_file{"./ga25_bests_history_"};
-                best_file += blt::system::getTimeStringFS();
-                best_file += ".csv";
-                ga::program::write_history(best_file, best_solution);
-                
-                std::string worst_file{"./ga25_worsts_history_"};
-                worst_file += blt::system::getTimeStringFS();
-                worst_file += ".csv";
-                ga::program::write_history(worst_file, worst_best_solution);
+                );
+                std::mutex data_lock;
             } else
             {
                 BLT_INFO("Not a command.");
