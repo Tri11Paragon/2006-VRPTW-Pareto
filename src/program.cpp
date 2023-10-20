@@ -18,8 +18,8 @@
 
 namespace ga
 {
-#define HARD_VRPTW(lastDepartTime, route) (lastDepartTime + route.service_time)
-//#define HARD_VRPTW(lastDepartTime, route) (lastDepartTime)
+//#define HARD_VRPTW(lastDepartTime, route) (lastDepartTime + route.service_time)
+#define HARD_VRPTW(lastDepartTime, route) (lastDepartTime)
     
     
     double program::distance(customerID_t c1, customerID_t c2)
@@ -44,27 +44,33 @@ namespace ga
         return dist;
     }
     
-    double program::validate_route(const route& r)
+    bool program::validate_route(const route& r)
     {
+        // by returning max we will never use this solution. it also remains possible to check for error
         if (r.customers.empty())
-            return std::numeric_limits<double>::max();
+            return false;
         const double dueTime = records[0].due;
         double used_capacity = 0;
-        double lastDepartTime = 0;
+        double arrivalTime = 0;
         for (const auto& v : r.customers)
         {
             const auto& record = records[v];
-            // C101 edge case
-//            if (lastDepartTime + record.service_time > record.due && r.customers.size() == 1)
-//                return calculate_distance(r);
-            if (used_capacity + record.demand > capacity || HARD_VRPTW(lastDepartTime, record) > record.due ||
-                lastDepartTime + record.service_time > dueTime)
-                return std::numeric_limits<double>::max(); // by returning max we will never use this solution. it also remains possible to check for error
+            // capacity constraints
+            if (used_capacity + record.demand > capacity)
+                return false;
+            // arrival constraints
+            if (arrivalTime > record.due)
+                return false;
+            // return time constraints
+            if (arrivalTime + record.service_time > dueTime)
+                return false;
             used_capacity += record.demand;
             // handle early arrival time by making it wait.
-            lastDepartTime = std::max(lastDepartTime, record.ready) + record.service_time;
+            arrivalTime = std::max(arrivalTime, record.ready) + record.service_time;
+//            BLT_TRACE("%f %f", record.ready, record.due);
+//            BLT_DEBUG("Currently on %d with arrivalTime %f with used capacity %f", v, arrivalTime, used_capacity);
         }
-        return calculate_distance(r);
+        return true;
     }
     
     /**
@@ -177,9 +183,8 @@ namespace ga
                 {
                     route r_copy = r;
                     r_copy.customers.insert(r_copy.customers.begin() + static_cast<long>(i), v);
-                    double d = validate_route(r_copy);
-                    if (d != std::numeric_limits<double>::max())
-                        possibleRoutes.emplace_back(d, j, i);
+                    if (validate_route(r_copy))
+                        possibleRoutes.emplace_back(calculate_distance(r_copy), j, i);
                 }
             }
             // no feasible route found, we must make a new one
@@ -293,18 +298,22 @@ namespace ga
                 // we assume when a vehicle leaves it will teleport to the next destination immediately but must be able to service BEFORE closing
                 // if this isn't the intended behaviour remove the r.service_time from the second condition
                 // lastDepartTime + r.service_time is consistent with "and must return before or at time bn+1"
-//                if (lastDepartTime + r.service_time > r.due && currentRoute.customers.empty())
-//                {
-//                    currentRoute.customers.push_back(c.genes[index++]); // c101 edge case
-//                    break;
-//                }
-                if ((currentCapacity + r.demand > capacity || HARD_VRPTW(lastDepartTime, r) > r.due || lastDepartTime + r.service_time > dueTime))
+                // capacity constraints
+                if (currentCapacity + r.demand > capacity)
+                    break;
+                // arrival constraint
+                if (lastDepartTime > r.due)
+                    break;
+                // return constraint
+                if (lastDepartTime + r.service_time > dueTime)
                     break;
                 currentCapacity += r.demand;
                 // wait until the customer opens, add the service time, move on
                 lastDepartTime = std::max(lastDepartTime, r.ready) + r.service_time;
                 currentRoute.customers.push_back(c.genes[index++]);
             }
+            if (!validate_route(currentRoute))
+                BLT_WARN("Route is invalid!");
             currentRoute.total_distance = calculate_distance(currentRoute);
             routes.push_back(currentRoute);
         }
@@ -313,25 +322,37 @@ namespace ga
         for (size_t i = 1; i < routes.size(); i++)
         {
             auto& route1 = routes[i - 1];
+            auto rc1 = routes[i - 1];
             auto& route2 = routes[i];
+            auto rc2 = routes[i];
             
-            auto val = route1.customers.back();
-            auto val_itr = route2.customers.insert(route2.customers.begin(), val);
-            route1.customers.pop_back();
-            auto r1_td = validate_route(route1);
-            auto r2_td = validate_route(route2);
+            auto back = rc1.customers.back();
+            auto front = rc2.customers.front();
             
-            // network change is not accepted
-            if (r1_td + r2_td > route1.total_distance + route2.total_distance)
-            {
-                route1.customers.push_back(val);
-                route2.customers.erase(val_itr);
-            } else
-            {
-                route1.total_distance = r1_td;
-                route2.total_distance = r2_td;
-//                BLT_TRACE("route accepted!");
-            }
+            rc1.customers.pop_back();
+            std::erase(rc2.customers, front);
+            
+            rc1.customers.push_back(front);
+            rc2.customers.push_back(back);
+            
+            // if they are not valid, skip
+            if (!validate_route(rc1))
+                continue;
+            if (!validate_route(rc2))
+                continue;
+            
+            rc1.total_distance = calculate_distance(rc1);
+            rc2.total_distance = calculate_distance(rc2);
+            
+            // reject changes if not better
+            if (rc1.total_distance + rc2.total_distance >= route1.total_distance + route2.total_distance)
+                continue;
+            
+            // accept changes
+            route1 = rc1;
+            route2 = rc2;
+
+            BLT_ASSERT(validate_route(route1) && validate_route(route2));
         }
         
         return routes;
@@ -556,7 +577,7 @@ namespace ga
                     }
                     
                     // if it's not valid, reset.
-                    if (validate_route(route) == std::numeric_limits<double>::max())
+                    if (validate_route(route))
                     {
                         route = route_copy;
                     }
@@ -668,16 +689,16 @@ namespace ga
         for (int i = 0; i < POPULATION_SIZE; i++)
         {
             std::string route_values;
-            for (const auto& r : current_population.pops[i].routes)
+            for (size_t j = 0; j < current_population.pops[i].routes.size(); j++)
             {
-                auto d = validate_route(r);
-                if (d == 0 || d == std::numeric_limits<double>::max())
+                const auto& r = current_population.pops[i].routes[j];
+                if (validate_route(r))
                 {
-                    BLT_ERROR("Failure in pop (%d), route value is invalid!", i + 1);
-                    //return -1;
+                    route_values += std::to_string(calculate_distance(r)) += " ";
                 } else
                 {
-                    route_values += std::to_string(d) += " ";
+                    BLT_ERROR("Failure in pop (%d), route (%d) is invalid!", i + 1, j + 1);
+                    constraintFailurePrint(r);
                 }
             }
         }
@@ -700,10 +721,9 @@ namespace ga
             out << "\troutes:\n";
             for (const auto& r : pop.routes)
             {
-                auto rv = validate_route(r);
                 if (r.total_distance == 0)
-                    BLT_WARN("We have a zero distance! %f", rv);
-                out << "\t\t" << r.total_distance << "(valid? " << (rv != std::numeric_limits<double>::max() ? "true" : "false")
+                    BLT_WARN("We have a zero distance! %f", calculate_distance(r));
+                out << "\t\t" << r.total_distance << "(valid? " << (validate_route(r) ? "true" : "false")
                     << "): ";
                 for (const auto c : r.customers)
                     out << c << " ";
@@ -750,6 +770,43 @@ namespace ga
         current_population.pops.clear();
         for (int i = 0; i < POPULATION_SIZE; i++)
             current_population.pops.emplace_back(createRandomChromosome());
+    }
+    
+    void program::constraintFailurePrint(const route& r)
+    {
+        // by returning max we will never use this solution. it also remains possible to check for error
+        if (r.customers.empty())
+            return;
+        const double dueTime = records[0].due;
+        double used_capacity = 0;
+        double arrivalTime = 0;
+        for (const auto& v : r.customers)
+        {
+            const auto& record = records[v];
+            // capacity constraints
+            if (used_capacity + record.demand > capacity)
+            {
+                BLT_INFO("\tCapacity Failure");
+                return;
+            }
+            // arrival constraints
+            if (arrivalTime > record.due)
+            {
+                BLT_INFO("\tArrival Failure");
+                return;
+            }
+            // return time constraints
+            if (arrivalTime + record.service_time > dueTime)
+            {
+                BLT_INFO("Return Failure");
+                return;
+            }
+            used_capacity += record.demand;
+            // handle early arrival time by making it wait.
+            arrivalTime = std::max(arrivalTime, record.ready) + record.service_time;
+//            BLT_TRACE("%f %f", record.ready, record.due);
+//            BLT_DEBUG("Currently on %d with arrivalTime %f with used capacity %f", v, arrivalTime, used_capacity);
+        }
     }
     
 }

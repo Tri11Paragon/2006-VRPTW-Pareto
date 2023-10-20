@@ -15,6 +15,8 @@
 #include <algorithm>
 #include <blt/std/logging.h>
 #include <blt/std/random.h>
+#include <blt/std/string.h>
+#include "blt/std/assert.h"
 
 namespace ga
 {
@@ -74,169 +76,205 @@ namespace ga
 //#define RANDOM_ENGINE() RANDOM_STATIC std::random_device dev; \
 //    std::seed_seq seq{dev(), dev()}; \
 //    RANDOM_STATIC std::mt19937_64 engine(seq);
+    
+    class random_engine
+    {
+        private:
         
-        class random_engine
-        {
-            private:
-            
-            public:
-                inline double getDouble(double min, double max)
-                {
-                    RANDOM_STATIC std::random_device dev;
-                    RANDOM_STATIC std::seed_seq seq{dev(), dev()};
-                    RANDOM_STATIC std::mt19937_64 engine(seq);
-                    std::uniform_real_distribution dist(min, max);
-                    return dist(engine);
-                }
-                
-                inline float getFloat(float min, float max)
-                {
-                    return static_cast<float>(getDouble(min, max));
-                }
-                
-                inline std::int32_t getInt(std::int32_t min, std::int32_t max)
-                {
-                    RANDOM_STATIC std::random_device dev;
-                    RANDOM_STATIC std::seed_seq seq{dev(), dev()};
-                    RANDOM_STATIC std::mt19937_64 engine(seq);
-                    std::uniform_int_distribution dist(min, max);
-                    return dist(engine);
-                }
-                
-                inline std::int64_t getLong(std::int64_t min, std::int64_t max)
-                {
-                    RANDOM_STATIC std::random_device dev;
-                    RANDOM_STATIC std::seed_seq seq{dev(), dev()};
-                    RANDOM_STATIC std::mt19937_64 engine(seq);
-                    std::uniform_int_distribution dist(min, max);
-                    return dist(engine);
-                }
-                
-                inline std::uint64_t getLong(std::uint64_t min, std::uint64_t max)
-                {
-                    RANDOM_STATIC std::random_device dev;
-                    RANDOM_STATIC std::seed_seq seq{dev(), dev()};
-                    RANDOM_STATIC std::mt19937_64 engine(seq);
-                    std::uniform_int_distribution dist(min, max);
-                    return dist(engine);
-                }
-        };
-        
-        class program
-        {
-            private:
-                double distance(customerID_t c1, customerID_t c2);
-                
-                double calculate_distance(const route& r);
-                
-                double validate_route(const route& r);
-                
-                static bool dominates(const individual& u, const individual& v);
-                
-                bool is_non_dominated(customerID_t v);
-                
-                static double weighted_sum_fitness(individual& v);
-                
-                customerID_t select_pop(size_t tournament_size);
-                
-                static void remove_from(const route& r, individual& c);
-                
-                void insert_to(const route& r_in, individual& c_in);
-                
-                void reconstruct_populations();
-                
-                static void reconstruct_chromosome(individual& i);
-                
-                static void rebuild_population_chromosomes(population& pop);
-                
-                void add_step_to_history();
-            
-            protected:
-                std::vector<route> constructRoute(const chromosome& c);
-                
-                chromosome createRandomChromosome();
-                
-                void calculatePopulationFitness();
-                void rankPopulation();
-                
-                void keepElites(population& pop, size_t n);
-                
-                void applyCrossover(population& pop);
-                
-                void applyMutation(population& pop);
-                
-                void applySecondaryMutation(population& pop);
-            
-            public:
-                program(std::int32_t c, std::vector<record>&& r, std::int32_t popSize = DEFAULT_POPULATION_SIZE,
-                        std::int32_t genCount = DEFAULT_GENERATION_COUNT, std::int32_t tourSize = DEFAULT_TOURNAMENT_SIZE,
-                        std::int32_t eliteCount = DEFAULT_ELITE_COUNT, double crossoverRate = DEFAULT_CROSSOVER_RATE,
-                        double mutationRate = DEFAULT_MUTATION_RATE, double mutation2Rate = DEFAULT_MUTATION_2_RATE):
-                        POPULATION_SIZE(popSize), GENERATION_COUNT(genCount), TOURNAMENT_SIZE(tourSize), ELITE_COUNT(eliteCount),
-                        CROSSOVER_RATE(crossoverRate), MUTATION_RATE(mutationRate), MUTATION2_RATE(mutationRate)
-                {
-                    capacity = c;
-                    records = std::move(r);
-                    
-                    current_population.pops.reserve(POPULATION_SIZE);
-                    
-                    for (int i = 0; i < POPULATION_SIZE; i++)
-                        current_population.pops.emplace_back(createRandomChromosome());
-                }
-                
-                void executeStep();
-                
-                void print();
-                
-                void validate();
-                
-                void write(const std::string& input);
-                void writeHistory();
-                void reset();
-                
-                static void write_history(const std::string& path, const std::vector<point>& history);
-                
-                [[nodiscard]] inline size_t steps() const
-                {
-                    return count;
-                }
-                
-                [[nodiscard]] std::vector<point> getBestHistory() const {
-                    return best_history;
-                }
-                
-                [[nodiscard]] std::vector<point> getAvgHistory() const {
-                    return avg_history;
-                }
-            
-            private:
-                size_t count = 0;
-                std::int32_t capacity;
-                std::vector<record> records;
-                std::vector<point> best_history;
-                std::vector<point> avg_history;
-                population current_population;
-                random_engine engine;
-            public:
-                const std::int32_t POPULATION_SIZE;
-                const std::int32_t GENERATION_COUNT;
-                const std::int32_t TOURNAMENT_SIZE;
-                const std::int32_t ELITE_COUNT;
-                const double CROSSOVER_RATE;
-                const double MUTATION_RATE;
-                const double MUTATION2_RATE;
-                bool using_fitness = false;
-        };
-        
-        template<typename T>
-        inline void print(const T& t)
-        {
-            for (const auto& v : t)
+        public:
+            inline double getDouble(double min, double max)
             {
-                BLT_INFO_STREAM << v << " ";
+                RANDOM_STATIC std::random_device dev;
+                RANDOM_STATIC std::seed_seq seq{dev(), dev()};
+                RANDOM_STATIC std::mt19937_64 engine(seq);
+                std::uniform_real_distribution dist(min, max);
+                return dist(engine);
             }
-            BLT_INFO_STREAM << "\n";
+            
+            inline float getFloat(float min, float max)
+            {
+                return static_cast<float>(getDouble(min, max));
+            }
+            
+            inline std::int32_t getInt(std::int32_t min, std::int32_t max)
+            {
+                RANDOM_STATIC std::random_device dev;
+                RANDOM_STATIC std::seed_seq seq{dev(), dev()};
+                RANDOM_STATIC std::mt19937_64 engine(seq);
+                std::uniform_int_distribution dist(min, max);
+                return dist(engine);
+            }
+            
+            inline std::int64_t getLong(std::int64_t min, std::int64_t max)
+            {
+                RANDOM_STATIC std::random_device dev;
+                RANDOM_STATIC std::seed_seq seq{dev(), dev()};
+                RANDOM_STATIC std::mt19937_64 engine(seq);
+                std::uniform_int_distribution dist(min, max);
+                return dist(engine);
+            }
+            
+            inline std::uint64_t getLong(std::uint64_t min, std::uint64_t max)
+            {
+                RANDOM_STATIC std::random_device dev;
+                RANDOM_STATIC std::seed_seq seq{dev(), dev()};
+                RANDOM_STATIC std::mt19937_64 engine(seq);
+                std::uniform_int_distribution dist(min, max);
+                return dist(engine);
+            }
+    };
+    
+    class program
+    {
+        private:
+            double distance(customerID_t c1, customerID_t c2);
+            
+            double calculate_distance(const route& r);
+            
+            bool validate_route(const route& r);
+            
+            void constraintFailurePrint(const route& r);
+            
+            void validate_route(const std::string& str, std::vector<int32_t>& values)
+            {
+                BLT_TRACE("");
+                auto strs = blt::string::split(str, ' ');
+                auto lastLeaveTime = 0.0;
+                auto cap = 0.0;
+                for (const auto& i : strs)
+                {
+                    auto v = std::stoi(i);
+                    auto r = records[v];
+                    
+                    values.push_back(v);
+                    
+                    BLT_TRACE_STREAM << "(" << i << ": " << r.ready << " | " << r.due << " but comes at " << lastLeaveTime << " and leaves "
+                                     << (std::max(lastLeaveTime, r.ready) + r.service_time) << ") ";
+                    
+                    if (lastLeaveTime > r.due || lastLeaveTime > records[0].due)
+                        BLT_ERROR("\nFailed Route");
+                    
+                    cap += r.demand;
+                    lastLeaveTime = std::max(lastLeaveTime, r.ready) + r.service_time;
+                }
+                BLT_ASSERT(cap <= capacity);
+                BLT_ASSERT(lastLeaveTime <= records[0].due);
+                
+                BLT_TRACE_STREAM << "\n";
+                BLT_TRACE("%f %f", cap, lastLeaveTime);
+            }
+            
+            static bool dominates(const individual& u, const individual& v);
+            
+            bool is_non_dominated(customerID_t v);
+            
+            static double weighted_sum_fitness(individual& v);
+            
+            customerID_t select_pop(size_t tournament_size);
+            
+            static void remove_from(const route& r, individual& c);
+            
+            void insert_to(const route& r_in, individual& c_in);
+            
+            void reconstruct_populations();
+            
+            static void reconstruct_chromosome(individual& i);
+            
+            static void rebuild_population_chromosomes(population& pop);
+            
+            void add_step_to_history();
+        
+        protected:
+            std::vector<route> constructRoute(const chromosome& c);
+            
+            chromosome createRandomChromosome();
+            
+            void calculatePopulationFitness();
+            
+            void rankPopulation();
+            
+            void keepElites(population& pop, size_t n);
+            
+            void applyCrossover(population& pop);
+            
+            void applyMutation(population& pop);
+            
+            void applySecondaryMutation(population& pop);
+        
+        public:
+            program(std::int32_t c, std::vector<record>&& r, std::int32_t popSize = DEFAULT_POPULATION_SIZE,
+                    std::int32_t genCount = DEFAULT_GENERATION_COUNT, std::int32_t tourSize = DEFAULT_TOURNAMENT_SIZE,
+                    std::int32_t eliteCount = DEFAULT_ELITE_COUNT, double crossoverRate = DEFAULT_CROSSOVER_RATE,
+                    double mutationRate = DEFAULT_MUTATION_RATE, double mutation2Rate = DEFAULT_MUTATION_2_RATE):
+                    POPULATION_SIZE(popSize), GENERATION_COUNT(genCount), TOURNAMENT_SIZE(tourSize), ELITE_COUNT(eliteCount),
+                    CROSSOVER_RATE(crossoverRate), MUTATION_RATE(mutationRate), MUTATION2_RATE(mutationRate)
+            {
+                capacity = c;
+                records = std::move(r);
+                
+                current_population.pops.reserve(POPULATION_SIZE);
+                
+                for (int i = 0; i < POPULATION_SIZE; i++)
+                    current_population.pops.emplace_back(createRandomChromosome());
+            }
+            
+            void executeStep();
+            
+            void print();
+            
+            void validate();
+            
+            void write(const std::string& input);
+            
+            void writeHistory();
+            
+            void reset();
+            
+            static void write_history(const std::string& path, const std::vector<point>& history);
+            
+            [[nodiscard]] inline size_t steps() const
+            {
+                return count;
+            }
+            
+            [[nodiscard]] std::vector<point> getBestHistory() const
+            {
+                return best_history;
+            }
+            
+            [[nodiscard]] std::vector<point> getAvgHistory() const
+            {
+                return avg_history;
+            }
+        
+        private:
+            size_t count = 0;
+            std::int32_t capacity;
+            std::vector<record> records;
+            std::vector<point> best_history;
+            std::vector<point> avg_history;
+            population current_population;
+            random_engine engine;
+        public:
+            const std::int32_t POPULATION_SIZE;
+            const std::int32_t GENERATION_COUNT;
+            const std::int32_t TOURNAMENT_SIZE;
+            const std::int32_t ELITE_COUNT;
+            const double CROSSOVER_RATE;
+            const double MUTATION_RATE;
+            const double MUTATION2_RATE;
+            bool using_fitness = false;
+    };
+    
+    template<typename T>
+    inline void print(const T& t)
+    {
+        for (const auto& v : t)
+        {
+            BLT_INFO_STREAM << v << " ";
         }
+        BLT_INFO_STREAM << "\n";
     }
+}
 
 #endif //INC_2006_VRPTW_PARETO_PROGRAM_H
