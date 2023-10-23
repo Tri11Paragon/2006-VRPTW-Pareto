@@ -256,13 +256,22 @@ int main(int argc, const char** argv)
                             averageDistance /= runs;
                             averageFitness /= runs;
                             
-                            formatter_average.addRow({blt::filename(problem), std::to_string(averageFitness.routes) + " " + std::to_string(averageFitness.distance),
-                                                      std::to_string(averageCars.routes) + " " + std::to_string(averageCars.distance),
-                                                      std::to_string(averageDistance.routes) + " " + std::to_string(averageDistance.distance)});
+                            BLT_WARN(std::to_string(averageFitness.routes) + " " + std::to_string(averageFitness.distance));
+                            BLT_WARN(std::to_string(averageCars.routes) + " " + std::to_string(averageCars.distance));
+                            BLT_WARN(std::to_string(averageDistance.routes) + " " + std::to_string(averageDistance.distance));
                             
-                            formatter_best.addRow({blt::filename(problem), std::to_string(bestFitness.routes) + " " + std::to_string(bestFitness.distance),
-                                                   std::to_string(bestCars.routes) + " " + std::to_string(bestCars.distance),
-                                                   std::to_string(bestDistance.routes) + " " + std::to_string(bestDistance.distance)});
+                            {
+                                std::scoped_lock<std::mutex> lo(write_lock);
+                                formatter_average.addRow({blt::filename(problem),
+                                                          std::to_string(averageFitness.routes) + " " + std::to_string(averageFitness.distance),
+                                                          std::to_string(averageCars.routes) + " " + std::to_string(averageCars.distance),
+                                                          std::to_string(averageDistance.routes) + " " + std::to_string(averageDistance.distance)});
+                                
+                                formatter_best.addRow({blt::filename(problem),
+                                                       std::to_string(bestFitness.routes) + " " + std::to_string(bestFitness.distance),
+                                                       std::to_string(bestCars.routes) + " " + std::to_string(bestCars.distance),
+                                                       std::to_string(bestDistance.routes) + " " + std::to_string(bestDistance.distance)});
+                            }
                         }
                         
                         BLT_INFO("Ending thread %d", i);

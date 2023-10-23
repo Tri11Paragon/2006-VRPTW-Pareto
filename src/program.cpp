@@ -230,6 +230,7 @@ namespace ga
     
     void program::add_step_to_history()
     {
+        generation_point gen_point{count};
         double best_distAvg = 0;
         double avg_distAvg = 0;
         size_t best_routes = 0;
@@ -241,15 +242,17 @@ namespace ga
             fit = std::min(fit, i.fitness);
         for (int i = 0; i < POPULATION_SIZE; i++)
         {
-            auto total_dist = current_population.pops[i].total_routes_distance;
-            auto total_routes = current_population.pops[i].routes.size();
+            auto& currentP = current_population.pops[i];
+            gen_point.indv.push_back(individual_point{currentP.total_routes_distance, currentP.fitness, currentP.rank, currentP.routes.size()});
+            auto total_dist = currentP.total_routes_distance;
+            auto total_routes = currentP.routes.size();
             avg_distAvg += total_dist;
             avg_routes += total_routes;
             cnt++;
-            auto lf = current_population.pops[i].fitness;
+            auto lf = currentP.fitness;
             if (using_fitness && !(lf >= fit - EPSILON && lf <= fit + EPSILON))
                 continue;
-            if (!using_fitness && current_population.pops[i].rank != 1)
+            if (!using_fitness && currentP.rank != 1)
                 continue;
             best_distAvg += total_dist;
             best_routes += total_routes;
