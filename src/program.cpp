@@ -737,7 +737,7 @@ namespace ga
         }
     }
     
-    void program::write_history(const std::string& path, const std::vector<point>& history)
+    void program::write_history(const std::string& path, const std::vector<avg_point>& history)
     {
         std::ofstream out(path);
         out << "Generation,Distance,Routes\n";

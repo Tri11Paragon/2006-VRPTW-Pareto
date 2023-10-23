@@ -65,11 +65,45 @@ namespace ga
         std::vector<individual> pops;
     };
     
-    struct point
+    struct avg_point
     {
         double distance;
         size_t routes;
         size_t currentGen;
+    };
+    
+    struct individual_point
+    {
+        double distance = 0;
+        fitness_t fitness = 0;
+        rank_t rank = 0;
+        size_t routes = 0;
+        
+        static inline individual_point max()
+        {
+            return {std::numeric_limits<double>::max(), std::numeric_limits<fitness_t>::max(), std::numeric_limits<rank_t>::max(),
+                    std::numeric_limits<size_t>::max()};
+        }
+        
+        individual_point& operator+=(individual_point p)
+        {
+            distance += p.distance;
+            routes += p.routes;
+            return *this;
+        }
+        
+        individual_point& operator/=(int32_t d)
+        {
+            distance /= static_cast<double>(d);
+            routes /= static_cast<size_t>(d);
+            return *this;
+        }
+    };
+    
+    struct generation_point
+    {
+        size_t currentGen;
+        std::vector<individual_point> indv;
     };
 
 #define RANDOM_STATIC static thread_local
@@ -202,12 +236,12 @@ namespace ga
             void applySecondaryMutation(population& pop);
         
         public:
-            program(std::int32_t c, std::vector<record>&& r, std::int32_t popSize = DEFAULT_POPULATION_SIZE,
+            program(std::int32_t c, std::vector<record>&& r, bool usingFitness = false, std::int32_t popSize = DEFAULT_POPULATION_SIZE,
                     std::int32_t genCount = DEFAULT_GENERATION_COUNT, std::int32_t tourSize = DEFAULT_TOURNAMENT_SIZE,
                     std::int32_t eliteCount = DEFAULT_ELITE_COUNT, double crossoverRate = DEFAULT_CROSSOVER_RATE,
                     double mutationRate = DEFAULT_MUTATION_RATE, double mutation2Rate = DEFAULT_MUTATION_2_RATE):
                     POPULATION_SIZE(popSize), GENERATION_COUNT(genCount), TOURNAMENT_SIZE(tourSize), ELITE_COUNT(eliteCount),
-                    CROSSOVER_RATE(crossoverRate), MUTATION_RATE(mutationRate), MUTATION2_RATE(mutationRate)
+                    CROSSOVER_RATE(crossoverRate), MUTATION_RATE(mutationRate), MUTATION2_RATE(mutationRate), using_fitness(usingFitness)
             {
                 capacity = c;
                 records = std::move(r);
@@ -230,29 +264,63 @@ namespace ga
             
             void reset();
             
-            static void write_history(const std::string& path, const std::vector<point>& history);
+            static void write_history(const std::string& path, const std::vector<avg_point>& history);
             
             [[nodiscard]] inline size_t steps() const
             {
                 return count;
             }
             
-            [[nodiscard]] std::vector<point> getBestHistory() const
+            [[nodiscard]] std::vector<avg_point> getBestHistory() const
             {
                 return best_history;
             }
             
-            [[nodiscard]] std::vector<point> getAvgHistory() const
+            [[nodiscard]] std::vector<avg_point> getAvgHistory() const
             {
                 return avg_history;
+            }
+            
+            [[nodiscard]] individual_point getBestDistance() const
+            {
+                individual_point p{};
+                p.distance = std::numeric_limits<distance_t>::max();
+                for (const auto& v : generation_data)
+                    for (const auto& i : v.indv)
+                        if (i.distance < p.distance)
+                            p = i;
+                return p;
+            }
+            
+            [[nodiscard]] individual_point getBestCars() const
+            {
+                individual_point p{};
+                p.routes = std::numeric_limits<size_t>::max();
+                for (const auto& v : generation_data)
+                    for (const auto& i : v.indv)
+                        if (i.routes < p.routes)
+                            p = i;
+                return p;
+            }
+            
+            [[nodiscard]] individual_point getBestFitness() const
+            {
+                individual_point p{};
+                p.fitness = std::numeric_limits<fitness_t>::max();
+                for (const auto& v : generation_data)
+                    for (const auto& i : v.indv)
+                        if (i.fitness < p.fitness)
+                            p = i;
+                return p;
             }
         
         private:
             size_t count = 0;
             std::int32_t capacity;
             std::vector<record> records;
-            std::vector<point> best_history;
-            std::vector<point> avg_history;
+            std::vector<generation_point> generation_data;
+            std::vector<avg_point> best_history;
+            std::vector<avg_point> avg_history;
             population current_population;
             random_engine engine;
         public:
