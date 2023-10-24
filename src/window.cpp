@@ -3,6 +3,8 @@
 //
 #include <blt/window/window.h>
 
+#ifdef BLT_BUILD_GLFW
+
 #include "imgui.h"
 #include "implot.h"
 #include "imgui_impl_glfw.h"
@@ -12,9 +14,6 @@
 #include <blt/std/logging.h>
 #include <blt/std/assert.h>
 #include <blt/std/hashmap.h>
-
-
-#ifdef BLT_BUILD_GLFW
 
 static void glfw_error_callback(int error, const char* description)
 {

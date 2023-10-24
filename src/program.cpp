@@ -260,6 +260,7 @@ namespace ga
         }
         best_history.push_back({best_distAvg / static_cast<double>(best_cnt), best_routes / best_cnt, count});
         avg_history.push_back({avg_distAvg / static_cast<double>(cnt), avg_routes / cnt, count});
+	generation_data.push_back(gen_point);
     }
     
     void program::reconstruct_chromosome(individual& i)

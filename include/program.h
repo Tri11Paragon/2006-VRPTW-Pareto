@@ -298,7 +298,7 @@ namespace ga
                 p.routes = std::numeric_limits<size_t>::max();
                 for (const auto& v : generation_data)
                     for (const auto& i : v.indv)
-                        if (i.routes < p.routes)
+                        if (i.routes < p.routes || (i.routes == p.routes && i.distance < p.distance))
                             p = i;
                 return p;
             }

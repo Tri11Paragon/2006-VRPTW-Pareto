@@ -10,7 +10,13 @@
 #include <loader.h>
 #include <blt/std/string.h>
 #include <blt/window/window.h>
-#include <implot.h>
+
+#ifdef BLT_BUILD_GLFW
+    
+    #include <implot.h>
+
+#endif
+
 #include "blt/std/assert.h"
 #include "blt/std/time.h"
 #include "blt/std/logging.h"
@@ -21,6 +27,8 @@
 #include <mutex>
 #include <barrier>
 #include <iostream>
+#include <ostream>
+#include <fstream>
 
 struct datagram
 {
@@ -199,13 +207,14 @@ int main(int argc, const char** argv)
                 formatter_best.addColumn({"wGA"});
                 formatter_best.addColumn({"pGA Vehicles"});
                 formatter_best.addColumn({"pGA Distance"});
-
+                
                 std::vector<std::jthread*> threads;
                 for (size_t i = 0; i < processor_count; i++)
                 {
                     threads.push_back(new std::jthread([&, i]() -> void {
                         BLT_INFO("Starting thread %d", i);
-                        while (true){
+                        while (true)
+                        {
                             std::string problem;
                             int32_t capacity = 0;
                             {
@@ -251,6 +260,9 @@ int main(int argc, const char** argv)
                                 if (bf.fitness < bestFitness.fitness)
                                     bestFitness = bf;
                                 BLT_TRACE("%d Ending run %d", i, j);
+                                BLT_WARN(std::to_string(bf.routes) + " " + std::to_string(bf.distance));
+                                BLT_WARN(std::to_string(bc.routes) + " " + std::to_string(bc.distance));
+                                BLT_WARN(std::to_string(bd.routes) + " " + std::to_string(bd.distance));
                             }
                             averageCars /= runs;
                             averageDistance /= runs;
@@ -284,10 +296,17 @@ int main(int argc, const char** argv)
                 
                 BLT_TRACE("Threads deleted.");
                 
+                std::ofstream lout("results.txt");
                 for (const auto& v : formatter_average.createTable(true, true))
+                {
                     std::cout << v << "\n";
+                    lout << v << "\n";
+                }
                 for (const auto& v : formatter_best.createTable(true, true))
+                {
                     std::cout << v << "\n";
+                    lout << v << "\n";
+                }
             } else
             {
                 BLT_INFO("Not a command.");
